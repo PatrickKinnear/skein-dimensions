@@ -1,4 +1,4 @@
-###Skein Module Dimension Estimates
+# Skein Module Dimension Estimates
 
 A project to estimate the dimensions of skein modules of twisted 3d tori.
 
