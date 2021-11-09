@@ -95,8 +95,8 @@ def get_relations(shell_level, order_func):
                     # Check the relations are not out of range.
                     if r + s >= 0 and t + u >= 0 and r <= shell_level and s <= shell_level and t <= shell_level and u <= shell_level:
                         # Compute the coefficients in the relations.
-                        Q_1 = q^(-b*c) - q^(-a*d)
-                        Q_2 = q^(b*c) - q^(a*d)
+                        Q_1 = q**(-b*c) - q**(-a*d)
+                        Q_2 = q**(b*c) - q**(a*d)
                         # Check the relations are not trivial.
                         if Q_1 != 0 and Q_2 != 0:
                             # Update the list of relations with a vector.
@@ -116,7 +116,7 @@ if len(sys.argv) != 2:
     sys.exit(1)
 
 n = sage_eval(sys.argv[1]) # Number of levels of shell to compute for.
-var('q') # Declare an indeterminate q.
+q = var('q') # Declare an indeterminate q.
 
 for shell_level in range(n+1):
     N = (2*shell_level + 1)*(shell_level + 1) # For each shell level, compute #{lattice points}.
