@@ -64,7 +64,7 @@ def order_lrtb(shell_level):
                 # Populate dict entry, increment place for next point,
                 # decrement y coord.
                 order_dict.update({(a, b): place})
-                points_in_order.append((a, b))
+                points_in_order.append(np.matrix([a, b]))
                 place += 1
                 b -= 1
         else:
@@ -73,12 +73,12 @@ def order_lrtb(shell_level):
                 # Populate dict entry, increment place for next point,
                 # decrement y coord.
                 order_dict.update({(a, b): place})
-                points_in_order.append((a, b))
+                points_in_order.append(np.matrix([a, b]))
                 place += 1
                 b -= 1
     return (order_dict, points_in_order)
 
-def get_relations(shell_level, order_func):
+def get_relations(gamma, shell_level, order_func):
     '''
     Returns a list of linear relations between lattice points for a specified
     shell level. Each relation is a list representing a relation vector.
@@ -100,46 +100,69 @@ def get_relations(shell_level, order_func):
     ordering = order_func(shell_level)[0] # Dictionary giving points an order.
     points_in_order = order_func(shell_level)[1] # Points listed in order.
 
+    a = gamma[0, 0]
+    b = gamma[0, 1]
+    c = gamma[1, 0]
+    d = gamma[1, 1]
+
     for p_0 in points_in_order:
         for p_1 in points_in_order:
-            a = p_0[0]
-            b = p_0[1]
-            c = p_1[0]
-            d = p_1[1]
+            r = p_0[0, 0]
+            s = p_0[0, 1]
+            t = p_1[0, 0]
+            u = p_1[0, 1]
+
+            K = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b # A constant
+
             # Rewrite indices for the generators appearing in the linear
             # relation coming from points ((a, b), (c, d)).
-            r = a + c
-            s = b + d
-            t = a - c
-            u = b - d
+            x_0 = p_0 + p_1
+            x_1 = p_0 - p_1
+            x_2 = p_0 + np.matmul(p_1, gamma.T)
+            x_3 = p_0 - np.matmul(p_1, gamma.T)
+
+            x_0_tuple = tuple(x_0.tolist()[0])
+            x_1_tuple = tuple(x_1.tolist()[0])
+            x_2_tuple = tuple(x_2.tolist()[0])
+            x_3_tuple = tuple(x_3.tolist()[0])
+
             # Check the relations are not out of range.
-            if (r, s) in points_in_order and (t, u) in points_in_order:
+            if x_0_tuple in ordering.keys() and x_1_tuple in ordering.keys() and x_2_tuple in ordering.keys() and x_3_tuple in ordering.keys():
+                #Create vectors corresponding to the four points
+                x_0_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_0_tuple] else 0 for i in range(N)])
+                x_1_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_1_tuple] else 0 for i in range(N)])
+                x_2_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_2_tuple] else 0 for i in range(N)])
+                x_3_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_3_tuple] else 0 for i in range(N)])
+
                 # Compute the coefficients in the relations.
-                Q_1 = q**(-b*c) - q**(-a*d)
-                Q_2 = q**(b*c) - q**(a*d)
+                Q_0 = q**(-s*t)
+                Q_1 = q**(s*t)
+                Q_2 = -q**(K - r*(c*t + d*u))
+                Q_3 = -q**(K + r*(c*t + d*u))
+
+                rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
+
                 # Check the relations are not trivial.
-                if Q_1 != 0 and Q_2 != 0:
-                    # Update the list of relations with a vector.
-                    x = ordering[(r, s)]
-                    y = ordering[(t, u)]
-                    rel = [0]*N
-                    rel[x] = Q_1
-                    rel[y] = Q_2
+                if not rel.is_zero():
                     relations.append(rel)
     return relations
 
+import numpy as np
 # Solicit user input
 print("TWISTED TORUS SKEIN DIMENSION ESTIMATOR")
 print("Input an SL_2(Z)-matrix to define a twisted 3-torus. Enter the matrix\n\n[[a b]\n [c d]]\n\nas the string a b c d and press return.")
-user_matrix = [int(i) for i in input().split(" ")]
-if len(user_matrix) != 4:
+user_input = [int(i) for i in input().split(" ")]
+if len(user_input) != 4:
     print("Error! You did not enter 4 space-separated integers.")
     sys.exit(1)
-elif user_matrix[0]*user_matrix[3] - user_matrix[1]*user_matrix[2] != 1:
-    print("Error: the data you entered is not an SL_2(Z) matrrix, must have determinant 1.")
+
+gamma = np.matrix(user_input).reshape((2, 2))
+
+if np.linalg.det(gamma) != 1:
+    print("Error: the data you entered is not an SL_2(Z) matrix, must have determinant 1.")
     sys.exit(1)
 
-print("You have entered the matrix \n\n[[%d %d]\n [%d %d]]\n" % tuple(user_matrix))
+print("You have entered the matrix \n\n[[%d %d]\n [%d %d]]\n" % tuple(user_input))
 
 n = int(input("Enter the number of shell levels to check: "))#sage_eval(sys.argv[1]) # Number of levels of shell to compute for.
 q = var('q') # Declare an indeterminate q.
@@ -149,12 +172,13 @@ for shell_level in range(n+1):
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level
 
     print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
-    relations = get_relations(shell_level, order_lrtb)
+    relations = get_relations(gamma, shell_level, order_lrtb)
     print("Found %d (non-independent) relations. Reducing ..." % len(relations))
 
     # Form a relation matrix, compute its rank; the dimension estimate is the
     # co-rank.
     A = matrix(QQ['q'].fraction_field(), relations)
+    #print(A)
     relations_rank = A.rank()
     dim_estimate = N - relations_rank
     print("Dimension estimate for level %d: %d.\n" % (shell_level, dim_estimate))
