@@ -30,6 +30,7 @@ compute the dimension. If the dimensions stabilize as n grows, we expect this
 gives an upper bound on the dimension of the skein module.
 '''
 
+import os
 import sys
 import numpy as np
 from sage.all import *
@@ -148,6 +149,49 @@ def get_relations(gamma, shell_level, order_func):
                     relations.append(rel)
     return relations
 
+def print_generators(shell_level, pivots, order_func):
+    '''
+    Prints a visualisation of the spanning lattice points to the command line.
+    A spanning vector is denoted x in the lattice, other points are denoted .
+    and axes are drawn using | and -. The visualisation is printed to the
+    terminal (provided the terminal is large enough).
+    Takes the shell level, a tuple giving the indices of the pivots of the
+    relation matrix (these are the complement of the spanning set), and the
+    order_func to map lattice points to indices for comparison.
+    '''
+    max_width = os.get_terminal_size().columns #Check terminal is wide enough
+    if 2*(2*shell_level + 1) > max_width:
+        print("Cannot display spanning set graphically.")
+    else:
+        ordering = order_func(shell_level)[0] # Dictionary giving points order.
+        # Walk through (part of) the lattice Z^2 row by row, left to right.
+        for y in range(shell_level, -1*shell_level - 1, -1):
+            for x in range(-1*shell_level, shell_level + 1):
+                # If a point is in the shell, check if it is NOT a pivot of the
+                # relation matrix.
+                if (x, y) in ordering.keys():
+                    if not ordering[(x, y)] in pivots:
+                        print("x ", end="") #Place an x for spanning vectors.
+                    elif x == 0 and y == 0:
+                        print("+ ", end="") #Origin.
+                    elif x == 0:
+                        print("| ", end="") #Y axis.
+                    elif y == 0:
+                        print("- ", end="") #X axis.
+                    else:
+                        print(". ", end="") #Generic lattice point.
+                elif x == 0 and y == 0:
+                    print("+ ", end="") #Origin.
+                elif x == 0:
+                    print("| ", end="") #Y axis.
+                elif y == 0:
+                    print("- ", end="") #X axis.
+                else:
+                    print(". ", end="") #Generic lattice point.
+            print("") # Complete line with \n.
+        print("") # Pad below.
+    return None
+
 # Solicit user input
 print("TWISTED TORUS SKEIN DIMENSION ESTIMATOR")
 print("Input an SL_2(Z)-matrix to define a twisted 3-torus. Enter the matrix\n\n[[a b]\n [c d]]\n\nas the string a b c d and press return.")
@@ -181,4 +225,5 @@ for shell_level in range(n+1):
     A = matrix(QQ['q'].fraction_field(), relations)
     pivots = A.pivots()
     dim_estimate = N - len(pivots)
-    print("Dimension estimate for level %d: %d.\n" % (shell_level, dim_estimate))
+    print("Dimension estimate for level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
+    print_generators(shell_level, pivots, order_lrtb)
