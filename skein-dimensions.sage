@@ -94,6 +94,7 @@ def get_relations(shell_level, order_func):
                     u = b - d
                     # Check the relations are not out of range.
                     if r + s >= 0 and t + u >= 0 and r <= shell_level and s <= shell_level and t <= shell_level and u <= shell_level:
+                        print(a, b, c, d)
                         # Compute the coefficients in the relations.
                         Q_1 = q**(-b*c) - q**(-a*d)
                         Q_2 = q**(b*c) - q**(a*d)
@@ -110,22 +111,35 @@ def get_relations(shell_level, order_func):
             b -= 1
     return relations
 
-# Handle incorrect number of arguments.
-if len(sys.argv) != 2:
-    print("Give an integer n, to compute dimension estimates for n levels of triangular shells.")
+# Solicit user input
+print("TWISTED TORUS SKEIN DIMENSION ESTIMATOR")
+print("Input an SL_2(Z)-matrix to define a twisted 3-torus. Enter the matrix\n\n[[a b]\n [c d]]\n\nas the string a b c d and press return.")
+user_matrix = [int(i) for i in input().split(" ")]
+if len(user_matrix) != 4:
+    print("Error! You did not enter 4 space-separated integers.")
+    sys.exit(1)
+elif user_matrix[0]*user_matrix[3] - user_matrix[1]*user_matrix[2] != 1:
+    print("Error: the data you entered is not an SL_2(Z) matrrix, must have determinant 1.")
     sys.exit(1)
 
-n = sage_eval(sys.argv[1]) # Number of levels of shell to compute for.
+print("You have entered the matrix \n\n[[%d %d]\n [%d %d]]\n" % tuple(user_matrix))
+
+n = int(input("Enter the number of shell levels to check: "))#sage_eval(sys.argv[1]) # Number of levels of shell to compute for.
 q = var('q') # Declare an indeterminate q.
 
+import time
 for shell_level in range(n+1):
+    t_0 = time.time()
     N = (2*shell_level + 1)*(shell_level + 1) # For each shell level, compute #{lattice points}.
     print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
     relations = get_relations(shell_level, order_lrtb)
     print("Found %d (non-independent) relations. Reducing ..." % len(relations))
     # Form a relation matrix, compute its rank; the dimension estimate is the
     # co-rank.
-    A = matrix(CC['q'].fraction_field(), relations)
+    A = matrix(QQ['q'].fraction_field(), relations)
+    print(A)
     relations_rank = A.rank()
     dim_estimate = N - relations_rank
     print("Dimension estimate for level %d: %d.\n" % (shell_level, dim_estimate))
+    t_1 = time.time()
+    #print("Time %f" % t_1 - t_0)
