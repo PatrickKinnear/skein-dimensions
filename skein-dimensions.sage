@@ -192,6 +192,65 @@ def print_generators(shell_level, pivots, order_func):
         print("") # Pad below.
     return None
 
+def order_lexi():
+    Z_2 = Integers(2)
+    order_dict = {}
+    in_order = []
+    place = 0
+    for a_0 in Z_2:
+        for a_1 in Z_2:
+            order_dict.update({(a_0, a_1) : place})
+            in_order.append(matrix([a_0, a_1]))
+            place += 1
+
+    return (order_dict, in_order)
+
+def get_dim_single_skein(gamma):
+    '''
+    Takes a 4x4 np array gamma, and returns the dimension of the single skein
+    part of the twisted torus, where gamma is an SL_2(Z)-matrix defining the
+    twisting.
+
+    The vector space in question is a quotient of C[X, Y]/(X^2, Y^2) by
+    some relations. The basis {1, X, Y, XY} is represented by vectors of length
+    2 with Z/2-entries, i.e. X^aY^b is [a, b], and these are ordered
+    lexicographically.
+
+    The implementation is similar to get_relations.
+    '''
+    Z_2 = Integers(2) # Integers mod 2
+    order_dict, in_order = order_lexi() # A dict and list to order the basis
+    Gamma = matrix(Z_2, gamma.tolist()) # mod 2 sage version of gamma
+
+    rels = [] # Ready to record the twisted commutator relations.
+
+    # Walk thru pairs of basis elements (R, S) viewed as 1x2 Z/2 vectors (r, s)
+    for r in in_order:
+        for s in in_order:
+            first_term = r + s # First term in the commutator is RS, i.e. r + s
+            second_term = s*Gamma.T + r # Second term is twisted by Gamma
+
+            # Turn these into tuples to access the order dict
+            first_term_tuple = tuple([i for i in first_term][0])
+            second_term_tuple = tuple([i for i in second_term][0])
+
+            # Use the order dict to view each term of the relation as a vector
+            # in a 4d vecctor space.
+            first_term_vector = vector(QQ, [1 if i == order_dict[first_term_tuple] else 0 for i in range(4)])
+            second_term_vector = vector(QQ, [1 if i == order_dict[second_term_tuple] else 0 for i in range(4)])
+
+            #Get the relation, and append it if non-trivial.
+            rel = first_term_vector - second_term_vector
+            if not rel.is_zero()
+            r   els.append(rel)
+
+    # Calclulate the rank of the relation matrix: the dimention of the single
+    # skein part is the co-rank.
+    R = matrix(QQ, rels)
+    dim = 4 - R.rank()
+
+    return dim
+
 # Solicit user input
 print("TWISTED TORUS SKEIN DIMENSION ESTIMATOR")
 print("Input an SL_2(Z)-matrix to define a twisted 3-torus. Enter the matrix\n\n[[a b]\n [c d]]\n\nas the string a b c d and press return.")
