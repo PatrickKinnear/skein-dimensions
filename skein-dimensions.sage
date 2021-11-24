@@ -5,15 +5,27 @@ USAGE Ensure SAGE_ROOT is stored in your PATH, and run
 
 ./skein-dimensions.sage
 
-You will be prompted for an SL_2(Z)-matrix and an integer n, where n givesthe
+*Interactive Mode*
+You will be prompted for an SL_2(Z)-matrix and an integer n, where n gives the
 number of levels to search through in a triangular shell (see description), to
-estimate the dimension of the skein module of T^2 x S^1 twisted by the specified
-matrix.
+estimate the dimension of the empty skein part of the skein module of T^2 x S^1
+twisted by the specified matrix. You may also give the letters I, S, or T to
+compute for these matrices.
+
+*Presentation Mode*
+The program will print a table giving some pre-defined SL_2(Z) matrices, the
+dimension of the single skein part of the skein module of the twisted torus
+defined by this matrix, and an estimate of the dimension of the empty skein
+part.
 
 DESCRIPTION A script to estimate the dimension of the skein module of the
-3-torus. Works by increasing the size of an (almost) triangular lattice shell:
-all points in a box above the line y = -x, excluding a half-line to ensure this
-is a subset of a fundamental domain for half-turn rotation. E.g for n = 4:
+twisted 3-torus. Gives the dimension of the single skein part, and estimates the
+dimension of the empty skein part.
+
+The empty skein estimate works by increasing the size of an (almost) triangular
+lattice shell: all points in a box above the line y = -x, excluding a half-line
+to ensure this is a subset of a fundamental domain for half-turn rotation.
+E.g for n = 4:
 
                         x x x x x x x x x
                           x x x x x x x x
@@ -27,12 +39,15 @@ is a subset of a fundamental domain for half-turn rotation. E.g for n = 4:
 As shell_level -> infty this is a generating set. The program finds linear
 relations between lattice points at each level, and then does row reduction to
 compute the dimension. If the dimensions stabilize as n grows, we expect this
-gives an upper bound on the dimension of the skein module.
+gives an upper bound on the dimension of the empty skein part of the skein
+module.
+
+The dimension of the single skein part is easily computed, and there is no
+estimation in this figure.
 '''
 
 import os
 import sys
-import numpy as np
 from sage.all import *
 
 def order_lrtb(shell_level):
@@ -77,8 +92,8 @@ def get_relations_empty(gamma, shell_level, order_func):
     shell level.
 
     Each ordered pair of lattice points determines a relation between four other
-    lattice points, where lattice points correspond to generators of the skein
-    module.
+    lattice points, where lattice points correspond to generators of the empty
+    part of the skein module.
 
     Requires integer shell_level, and function order_func : int -> (dict, list)
     which should produce: a dictionary with keys being lattice points in a
@@ -102,7 +117,6 @@ def get_relations_empty(gamma, shell_level, order_func):
     b = gamma[0, 1]
     c = gamma[1, 0]
     d = gamma[1, 1]
-
 
     for p_0 in points_in_order:
         for p_1 in points_in_order:
@@ -193,12 +207,30 @@ def print_generators(shell_level, pivots, order_func):
     return None
 
 def order_lexi():
-    Z_2 = Integers(2)
+    '''
+    Returns an ordering on 1x2 vector representations of basis elements of
+    C[X, Y]/(X^2, Y^2). The element R = X^aY^b is the vector r = [a, b], so that
+    RS is given by rs and gamma.R is r*gamma.T, and the basis is {1, X, Y, XY}.
+
+    Returns a tuple (order_dict, in_order) giving lexicographical ordering on
+    these vectors.
+
+    order_dict: keys are 2d vectors (with Z/2 entries), values are their place
+    in the lexicographical ordering: used to pass from r to the 4d vector R. The
+    keys must be tuples to be hashable.
+
+    in_order: a list of the vectors, as 2d sage vectors, in lexicographical
+    order.
+    '''
+    Z_2 = Integers(2) # Work mod 2
     order_dict = {}
     in_order = []
-    place = 0
+    place = 0 # Record the place in the ordering
+
+    # Iterate over (Z/2)^2 in lexicographical order
     for a_0 in Z_2:
         for a_1 in Z_2:
+            # Update the dict and list
             order_dict.update({(a_0, a_1) : place})
             in_order.append(vector([a_0, a_1]))
             place += 1
@@ -207,7 +239,7 @@ def order_lexi():
 
 def get_dim_single_skein(gamma):
     '''
-    Takes a 4x4 np array gamma, and returns the dimension of the single skein
+    Takes an SL_2(Z) matrix gamma, and returns the dimension of the single skein
     part of the twisted torus, where gamma is an SL_2(Z)-matrix defining the
     twisting.
 
@@ -216,7 +248,9 @@ def get_dim_single_skein(gamma):
     2 with Z/2-entries, i.e. X^aY^b is [a, b], and these are ordered
     lexicographically.
 
-    The implementation is similar to get_relations.
+    The implementation is similar to get_relations: for all pairs of basis
+    elements of C[X, Y]/(X^2, Y^2) we get the gamma-twisted commutators, then
+    the corank of these relations is the required dimension.
     '''
     Z_2 = Integers(2) # Integers mod 2
     order_dict, in_order = order_lexi() # A dict and list to order the basis
@@ -250,40 +284,114 @@ def get_dim_single_skein(gamma):
 
     return dim
 
+def get_dim_estimates_empty(gamma, n, interactive_flag):
+    '''
+    Takes a matrix gamma and an integer n, and returns a list of estimates of
+    the dimension of the skein module of the gamma-twisted torus, where the i-th
+    element of the returned list is the estimated dimension at shell level i.
+
+    If interactive_flag is true, prints verbosely to the command line.
+    '''
+    # Declare an indeterminate q.
+    q = var('q')
+
+    dimensions = [] #
+
+    # Estimate the skein module dimension for each shell level.
+    for shell_level in range(n+1):
+        # For each shell level, compute #{lattice points}.
+        N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+        if interactive_flag:
+            print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
+        relations = get_relations_empty(gamma, shell_level, order_lrtb)
+        if interactive_flag:
+            print("Found %d (non-independent) relations. Reducing ..." % len(relations))
+        # Form a relation matrix, compute its pivots; the dimension estimate is the
+        # co-rank.
+        A = matrix(QQ['q'].fraction_field(), relations)
+        pivots = A.pivots()
+        dim_estimate = N - len(pivots)
+        if interactive_flag:
+            print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
+            print_generators(shell_level, pivots, order_lrtb)
+
+        dimensions.append(dim_estimate)
+
+    return dimensions
+
 # Solicit user input
 print("TWISTED TORUS SKEIN DIMENSION ESTIMATOR")
-print("Input an SL_2(Z)-matrix to define a twisted 3-torus. Enter the matrix\n\n[[a b]\n [c d]]\n\nas the string a b c d and press return.")
-user_input = [int(i) for i in input().split(" ")]
-if len(user_input) != 4:
-    print("Error! You did not enter 4 space-separated integers.")
+choice = input("Interactive (i) or presentation (p) mode? ")
+
+# Interactive mode
+if choice == "i":
+    print("Input an SL_2(Z)-matrix to define a twisted 3-torus.\nEnter a matix I, S, T, or enter the matrix\n\n[[a b]\n [c d]]\n\nas the string a b c d, and press return.")
+    user_input = input().split(" ")
+
+    # Allow users to specify the matrixes I, S, T just by letters
+    if len(user_input) == 1:
+        if user_input[0] == "I":
+            print("Estimating dimensions for the matrix gamma = I...\n")
+            gamma = matrix(ZZ, 2, [1, 0, 0, 1])
+        elif user_input[0] == "S":
+            print("Estimating dimensions for the matrix gamma = S...\n")
+            gamma = matrix(ZZ, 2, [0, -1, 1, 0])
+        elif user_input[0] == "T":
+            print("Estimating dimensions for the matrix gamma = T...\n")
+            gamma = matrix(ZZ, 2, [1, 1, 0, 1])
+        # These are the only accepted special input matrices.
+        else:
+            print("Invalid input!")
+            sys.exit(1)
+    #Otherwise,  accept a list of 4 integers. Catch if not valid.
+    elif len(user_input) != 4:
+        print("Error! You did not enter 4 space-separated integers.")
+        sys.exit(1)
+    # Form a matrix from the user-input list, check it is a valid SL_2(Z) matrix
+    else:
+        # This matrix defines the twisted torus
+        gamma = matrix(ZZ, 2, [int(i) for i in user_input])
+        print("You have entered the matrix \n\n[[%s %s]\n [%s %s]]\n" % tuple(user_input))
+
+        if gamma.determinant() != 1:
+            print("Error: the data you entered is not an SL_2(Z) matrix, must have determinant 1.")
+            sys.exit(1)
+
+    # Having handled the user's choice of matrix, compute the dimension of the
+    # single skein part.
+    print("Dimension for single skein part: %d\n" % get_dim_single_skein(gamma))
+
+    # Solicit the shell level to check up to from the user.
+    n = int(input("Enter the number of shell levels to estimate dimension of empty skein part: "))
+
+    # Get the dimension estimates, pass True interactive_flag to be verbose.
+    get_dim_estimates_empty(gamma, n, True)
+
+# Presentation mode:
+elif choice == "p":
+    # Print output of dimension computations for a pre-set list of matrices.
+    I = matrix(ZZ, 2, [1, 0, 0, 1])
+    S = matrix(ZZ, 2, [0, -1, 1, 0])
+    T = matrix(ZZ, 2, [1, 1, 0, 1])
+
+    matrices = [I, S, T]
+
+    print("\nMATRIX\t\tSINGLE SKEIN\t\tEMPTY SKEIN (est.)\n")
+
+    # For each matrix, print it, the dimension of its single skein part, and the
+    # estimated dimension of the empty skein part.
+    for M in matrices:
+        print("[[%d %d]\n [%d %d]]\t\t\t" % (M[0, 0], M[0, 1], M[1, 0], M[1, 1]), end="")
+        dim_empty = get_dim_single_skein(M)
+        print("%d\t\t\t" % dim_empty, end="")
+
+        # NOTE: We hard-coded the shell_level here to be 5.
+        dim_estimates = get_dim_estimates_empty(M, 5, False)
+        # WARNING: We simply print the last computed estimate, taking no account
+        # of convergence, for now.
+        print("%d\n" % dim_estimates[-1])
+
+# Exit if an pinvalid mode choice is made.
+else:
+    print("Invalid choice of mode!")
     sys.exit(1)
-
-# This matrix defines the twisted torus
-gamma = matrix(ZZ, 2, user_input)
-print("You have entered the matrix \n\n[[%d %d]\n [%d %d]]\n" % tuple(user_input))
-
-if gamma.determinant() != 1:
-    print("Error: the data you entered is not an SL_2(Z) matrix, must have determinant 1.")
-    sys.exit(1)
-
-print(get_dim_single_skein(gamma))
-
-n = int(input("Enter the number of shell levels to check: "))
-
-# Declare an indeterminate q.
-q = var('q')
-
-# Estimate the skein module dimension for each shell level.
-for shell_level in range(n+1):
-    # For each shell level, compute #{lattice points}.
-    N = (2*shell_level + 1)*(shell_level + 1) - shell_level
-    print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
-    relations = get_relations_empty(gamma, shell_level, order_lrtb)
-    print("Found %d (non-independent) relations. Reducing ..." % len(relations))
-    # Form a relation matrix, compute its pivots; the dimension estimate is the
-    # co-rank.
-    A = matrix(QQ['q'].fraction_field(), relations)
-    pivots = A.pivots()
-    dim_estimate = N - len(pivots)
-    print("Dimension estimate for level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
-    print_generators(shell_level, pivots, order_lrtb)
