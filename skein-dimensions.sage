@@ -10,7 +10,7 @@ You will be prompted for an SL_2(Z)-matrix and an integer n, where n gives the
 number of levels to search through in a triangular shell (see description), to
 estimate the dimension of the empty skein part of the skein module of T^2 x S^1
 twisted by the specified matrix. You may also give the letters I, S, or T to
-compute for these matrices.
+compute for these matrices, or the same preceded by - (for the negative version)
 
 *Presentation Mode*
 The program will print a table giving some pre-defined SL_2(Z) matrices, the
@@ -339,6 +339,15 @@ if choice == "i":
         elif user_input[0] == "T":
             print("Estimating dimensions for the matrix gamma = T...\n")
             gamma = matrix(ZZ, 2, [1, 1, 0, 1])
+        if user_input[0] == "-I":
+            print("Estimating dimensions for the matrix gamma = -I...\n")
+            gamma = matrix(ZZ, 2, [-1, 0, 0, -1])
+        elif user_input[0] == "-S":
+            print("Estimating dimensions for the matrix gamma = -S...\n")
+            gamma = matrix(ZZ, 2, [0, 1, -1, 0])
+        elif user_input[0] == "-T":
+            print("Estimating dimensions for the matrix gamma = -T...\n")
+            gamma = matrix(ZZ, 2, [-1, -1, 0, -1])
         # These are the only accepted special input matrices.
         else:
             print("Invalid input!")
@@ -373,8 +382,11 @@ elif choice == "p":
     I = matrix(ZZ, 2, [1, 0, 0, 1])
     S = matrix(ZZ, 2, [0, -1, 1, 0])
     T = matrix(ZZ, 2, [1, 1, 0, 1])
+    I_minus = matrix(ZZ, 2, [-1, 0, 0, -1])
+    S_minus = matrix(ZZ, 2, [0, 1, -1, 0])
+    T_minus = matrix(ZZ, 2, [-1, -1, 0, -1])
 
-    matrices = [I, S, T]
+    matrices = [I, S, T, I_minus, S_minus, T_minus]
 
     print("\nMATRIX\t\tSINGLE SKEIN\t\tEMPTY SKEIN (est.)\n")
 
