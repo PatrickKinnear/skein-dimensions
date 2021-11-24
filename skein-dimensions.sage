@@ -118,6 +118,8 @@ def get_relations_empty(gamma, shell_level, order_func):
     c = gamma[1, 0]
     d = gamma[1, 1]
 
+    q = var('q') # Must be defined here to alllow compiled sage.
+
     for p_0 in points_in_order:
         for p_1 in points_in_order:
             #Unpack the points
