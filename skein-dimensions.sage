@@ -57,7 +57,7 @@ def order_lrtb(shell_level):
                 # Populate dict entry, increment place for next point,
                 # decrement y coord.
                 order_dict.update({(a, b): place})
-                points_in_order.append(np.matrix([a, b]))
+                points_in_order.append(vector(QQ['q'].fraction_field(), [a, b]))
                 place += 1
                 b -= 1
         else:
@@ -66,12 +66,12 @@ def order_lrtb(shell_level):
                 # Populate dict entry, increment place for next point,
                 # decrement y coord.
                 order_dict.update({(a, b): place})
-                points_in_order.append(np.matrix([a, b]))
+                points_in_order.append(vector(QQ['q'].fraction_field(), [a, b]))
                 place += 1
                 b -= 1
     return (order_dict, points_in_order)
 
-def get_relations(gamma, shell_level, order_func):
+def get_relations_empty(gamma, shell_level, order_func):
     '''
     Returns a list of linear relations between lattice points for a specified
     shell level.
@@ -95,8 +95,7 @@ def get_relations(gamma, shell_level, order_func):
 
     relations = []
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level # Total lattice pts.
-    ordering = order_func(shell_level)[0] # Dictionary giving points an order.
-    points_in_order = order_func(shell_level)[1] # Points listed in order.
+    ordering, points_in_order = order_func(shell_level) # Dict and list of order
 
     #Unpack the matrix gamma.
     a = gamma[0, 0]
@@ -104,13 +103,16 @@ def get_relations(gamma, shell_level, order_func):
     c = gamma[1, 0]
     d = gamma[1, 1]
 
+    # Give a sage matrix version of gamma.
+    Gamma = matrix(QQ['q'].fraction_field(), gamma.tolist())
+
     for p_0 in points_in_order:
         for p_1 in points_in_order:
             #Unpack the points
-            r = p_0[0, 0]
-            s = p_0[0, 1]
-            t = p_1[0, 0]
-            u = p_1[0, 1]
+            r = p_0[0]
+            s = p_0[1]
+            t = p_1[0]
+            u = p_1[1]
 
             #A constant appearing in our coefficients, we compute it in advance
             K = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
@@ -118,14 +120,14 @@ def get_relations(gamma, shell_level, order_func):
             # The linear relation is between the four lattice points below:
             x_0 = p_0 + p_1
             x_1 = p_0 - p_1
-            x_2 = p_0 + np.matmul(p_1, gamma.T)
-            x_3 = p_0 - np.matmul(p_1, gamma.T)
+            x_2 = p_0 + p_1*Gamma.T
+            x_3 = p_0 - p_1*Gamma.T
 
             #Get tuple versions of the above (to access the order dict)
-            x_0_tuple = tuple(x_0.tolist()[0])
-            x_1_tuple = tuple(x_1.tolist()[0])
-            x_2_tuple = tuple(x_2.tolist()[0])
-            x_3_tuple = tuple(x_3.tolist()[0])
+            x_0_tuple = tuple([i for i in x_0])
+            x_1_tuple = tuple([i for i in x_1])
+            x_2_tuple = tuple([i for i in x_2])
+            x_3_tuple = tuple([i for i in x_3])
 
             # Check the relations are not out of range.
             if x_0_tuple in ordering.keys() and x_1_tuple in ordering.keys() and x_2_tuple in ordering.keys() and x_3_tuple in ordering.keys():
@@ -200,7 +202,7 @@ def order_lexi():
     for a_0 in Z_2:
         for a_1 in Z_2:
             order_dict.update({(a_0, a_1) : place})
-            in_order.append(matrix([a_0, a_1]))
+            in_order.append(vector([a_0, a_1]))
             place += 1
 
     return (order_dict, in_order)
@@ -231,8 +233,8 @@ def get_dim_single_skein(gamma):
             second_term = s*Gamma.T + r # Second term is twisted by Gamma
 
             # Turn these into tuples to access the order dict
-            first_term_tuple = tuple([i for i in first_term][0])
-            second_term_tuple = tuple([i for i in second_term][0])
+            first_term_tuple = tuple([i for i in first_term])
+            second_term_tuple = tuple([i for i in second_term])
 
             # Use the order dict to view each term of the relation as a vector
             # in a 4d vecctor space.
@@ -241,8 +243,8 @@ def get_dim_single_skein(gamma):
 
             #Get the relation, and append it if non-trivial.
             rel = first_term_vector - second_term_vector
-            if not rel.is_zero()
-            r   els.append(rel)
+            if not rel.is_zero():
+                rels.append(rel)
 
     # Calclulate the rank of the relation matrix: the dimention of the single
     # skein part is the co-rank.
@@ -277,7 +279,7 @@ for shell_level in range(n+1):
     # For each shell level, compute #{lattice points}.
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level
     print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
-    relations = get_relations(gamma, shell_level, order_lrtb)
+    relations = get_relations_empty(gamma, shell_level, order_lrtb)
     print("Found %d (non-independent) relations. Reducing ..." % len(relations))
     # Form a relation matrix, compute its pivots; the dimension estimate is the
     # co-rank.
