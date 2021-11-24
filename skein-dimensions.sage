@@ -57,7 +57,7 @@ def order_lrtb(shell_level):
                 # Populate dict entry, increment place for next point,
                 # decrement y coord.
                 order_dict.update({(a, b): place})
-                points_in_order.append(vector(QQ['q'].fraction_field(), [a, b]))
+                points_in_order.append(vector(ZZ, [a, b]))
                 place += 1
                 b -= 1
         else:
@@ -66,7 +66,7 @@ def order_lrtb(shell_level):
                 # Populate dict entry, increment place for next point,
                 # decrement y coord.
                 order_dict.update({(a, b): place})
-                points_in_order.append(vector(QQ['q'].fraction_field(), [a, b]))
+                points_in_order.append(vector(ZZ, [a, b]))
                 place += 1
                 b -= 1
     return (order_dict, points_in_order)
@@ -103,8 +103,6 @@ def get_relations_empty(gamma, shell_level, order_func):
     c = gamma[1, 0]
     d = gamma[1, 1]
 
-    # Give a sage matrix version of gamma.
-    Gamma = matrix(QQ['q'].fraction_field(), gamma.tolist())
 
     for p_0 in points_in_order:
         for p_1 in points_in_order:
@@ -120,8 +118,8 @@ def get_relations_empty(gamma, shell_level, order_func):
             # The linear relation is between the four lattice points below:
             x_0 = p_0 + p_1
             x_1 = p_0 - p_1
-            x_2 = p_0 + p_1*Gamma.T
-            x_3 = p_0 - p_1*Gamma.T
+            x_2 = p_0 + p_1*gamma.T
+            x_3 = p_0 - p_1*gamma.T
 
             #Get tuple versions of the above (to access the order dict)
             x_0_tuple = tuple([i for i in x_0])
@@ -222,7 +220,6 @@ def get_dim_single_skein(gamma):
     '''
     Z_2 = Integers(2) # Integers mod 2
     order_dict, in_order = order_lexi() # A dict and list to order the basis
-    Gamma = matrix(Z_2, gamma.tolist()) # mod 2 sage version of gamma
 
     rels = [] # Ready to record the twisted commutator relations.
 
@@ -230,7 +227,7 @@ def get_dim_single_skein(gamma):
     for r in in_order:
         for s in in_order:
             first_term = r + s # First term in the commutator is RS, i.e. r + s
-            second_term = s*Gamma.T + r # Second term is twisted by Gamma
+            second_term = s*gamma.T + r # Second term is twisted by Gamma
 
             # Turn these into tuples to access the order dict
             first_term_tuple = tuple([i for i in first_term])
@@ -262,12 +259,14 @@ if len(user_input) != 4:
     sys.exit(1)
 
 # This matrix defines the twisted torus
-gamma = np.matrix(user_input).reshape((2, 2))
+gamma = matrix(ZZ, 2, user_input)
 print("You have entered the matrix \n\n[[%d %d]\n [%d %d]]\n" % tuple(user_input))
 
-if np.linalg.det(gamma) != 1:
+if gamma.determinant() != 1:
     print("Error: the data you entered is not an SL_2(Z) matrix, must have determinant 1.")
     sys.exit(1)
+
+print(get_dim_single_skein(gamma))
 
 n = int(input("Enter the number of shell levels to check: "))
 
