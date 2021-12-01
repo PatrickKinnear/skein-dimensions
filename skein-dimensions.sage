@@ -3,7 +3,7 @@
 '''
 USAGE Ensure SAGE_ROOT is stored in your PATH, and run
 
-./skein-dimensions.sage [mode]
+./skein-dimensions.sage mode [rawpath [outpath]]
 
 where mode is a string specifying the mode, one of:
 
@@ -28,13 +28,17 @@ compute for these matrices, or the same preceded by - (for the negative version)
 The program will generate matrices in SL_2(Z), grouped by trace, and compute the
 dimension estimate of the skein module of the twisted torus defined by this
 matrix. The data is written in raw form to a csv file in the working directory.
+The output filepath may be specified at the command line. Default is
+skein-dims-rawdata.csv.
 
 *Write Mode*
 The program will produce a table giving some SL_2(Z) matrices, the dimension of
 the single skein part of the skein module of the twisted torus defined by this
 matrix, and an estimate of the dimension of the empty skein part. The raw data
 for the table is the output of a run of generation mode, so the program must be
-run once in g mode before w mode is used.
+run once in g mode before w mode is used. The path for the raw data file and the
+formatted output file may be specified at the command line. Defaults are
+skein-dims-rawdata.csv and skein-dims-printed.txt respectively.
 
 *Generate-Write Mode*
 The result of running generation mode followed immediately by write mode.
@@ -477,17 +481,33 @@ if choice == "i":
 
 # Generation mode
 elif choice == "g":
-    generate_raw_data("skein-dims-rawdata.csv")
+    path = "skein-dims-rawdata.csv"
+    if len(sys.argv) >= 3:
+        path = sys.argv[2]
+    generate_raw_data(path)
 
 # Presentation mode:
 elif choice == "w":
-    # Print output of dimension computations for a pre-set list of matrices.
-    write_dim_table("skein-dims-rawdata.csv", "skein-dims-printed.txt")
+    rawpath = "skein-dims-rawdata.csv"
+    outpath = "skein-dims-printed.txt"
+    if len(sys.argv) >= 3:
+        rawpath = sys.argv[2]
+        if len(sys.argv) >= 4:
+            outpath = sys.argv[3]
+
+    write_dim_table(rawpath, outpath)
 
 # Generate-write mode:
 elif choice == "gw":
-    generate_raw_data("skein-dims-rawdata.csv")
-    write_dim_table("skein-dims-rawdata.csv", "skein-dims-printed.txt")
+    rawpath = "skein-dims-rawdata.csv"
+    outpath = "skein-dims-printed.txt"
+    if len(sys.argv) >= 3:
+        rawpath = sys.argv[2]
+        if len(sys.argv) >= 4:
+            outpath = sys.argv[3]
+
+    generate_raw_data(rawpath)
+    write_dim_table(rawpath, outpath)
 
 # Exit if an pinvalid mode choice is made.
 else:
