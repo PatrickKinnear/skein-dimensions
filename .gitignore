@@ -1,2 +1,4 @@
 *.sage.py
 *.spyx
+*.csv
+*.txt

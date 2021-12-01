@@ -3,7 +3,19 @@
 '''
 USAGE Ensure SAGE_ROOT is stored in your PATH, and run
 
-./skein-dimensions.sage
+./skein-dimensions.sage [mode]
+
+where mode is a string specifying the mode, one of:
+
+(i) interactive
+(g) generation
+(w) write
+(gw) generate-and-write
+
+*Note* that w and gw modes require pandas. This can be installed by opening a
+Sage shell and running
+
+pip install pandas
 
 *Interactive Mode*
 You will be prompted for an SL_2(Z)-matrix and an integer n, where n gives the
@@ -12,11 +24,20 @@ estimate the dimension of the empty skein part of the skein module of T^2 x S^1
 twisted by the specified matrix. You may also give the letters I, S, or T to
 compute for these matrices, or the same preceded by - (for the negative version)
 
-*Presentation Mode*
-The program will print a table giving some pre-defined SL_2(Z) matrices, the
-dimension of the single skein part of the skein module of the twisted torus
-defined by this matrix, and an estimate of the dimension of the empty skein
-part.
+*Generation Mode*
+The program will generate matrices in SL_2(Z), grouped by trace, and compute the
+dimension estimate of the skein module of the twisted torus defined by this
+matrix. The data is written in raw form to a csv file in the working directory.
+
+*Write Mode*
+The program will produce a table giving some SL_2(Z) matrices, the dimension of
+the single skein part of the skein module of the twisted torus defined by this
+matrix, and an estimate of the dimension of the empty skein part. The raw data
+for the table is the output of a run of generation mode, so the program must be
+run once in g mode before w mode is used.
+
+*Generate-Write Mode*
+The result of running generation mode followed immediately by write mode.
 
 DESCRIPTION A script to estimate the dimension of the skein module of the
 twisted 3-torus. Gives the dimension of the single skein part, and estimates the
@@ -48,6 +69,8 @@ estimation in this figure.
 
 import os
 import sys
+import csv
+import pandas as pd
 from sage.all import *
 
 def order_lrtb(shell_level):
@@ -286,6 +309,7 @@ def get_dim_single_skein(gamma):
 
     return dim
 
+
 def get_dim_estimates_empty(gamma, n, interactive_flag):
     '''
     Takes a matrix gamma and an integer n, and returns a list of estimates of
@@ -321,12 +345,85 @@ def get_dim_estimates_empty(gamma, n, interactive_flag):
 
     return dimensions
 
-# Solicit user input
-print("TWISTED TORUS SKEIN DIMENSION ESTIMATOR")
-choice = input("Interactive (i) or presentation (p) mode? ")
+def generate_raw_data(path):
+    '''
+    Generate several SL_2(Z) matrices, compute their skein dimension estimates,
+    and write this data to a csv file.
+
+    The matrices generated are grouped by absolute value of trace.
+    '''
+    #Trace 0 matrix
+    S = matrix(ZZ, 2, [0, -1, 1, 0])
+
+    trace_0 = [S]
+
+    #Trace 1 matrices
+    M_0 = matrix(ZZ, 2, [1, -1, 1, 0])
+    M_1 = matrix(ZZ, 2, [0, 1, -1, 1])
+
+    trace_1 = [M_0, M_1]
+
+    #Generators for |trace| >= 2 matrices
+    R = matrix(ZZ, 2, [1, 1, 0, 1])
+    L = matrix(ZZ, 2, [1, 0, 1, 1])
+
+
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "empty_dim_0", "empty_dim_1", "empty_dim_2", "empty_dim_3", "empty_dim_4", "empty_dim_5", "total_dim"])
+        trace = 0
+        for M in trace_0:
+            dim_single = get_dim_single_skein(M)
+            dim_estimates = get_dim_estimates_empty(M, 5, False)
+            dim_total = dim_single + dim_estimates[-1]
+            writer.writerow([trace, M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single] + dim_estimates + [dim_total])
+
+        trace = 1
+        for M in trace_1:
+            didim_single = get_dim_single_skein(M)
+            dim_estimates = get_dim_estimates_empty(M, 5, False)
+            dim_total = dim_single + dim_estimates[-1]
+            writer.writerow([trace, M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single] + dim_estimates + [dim_total])
+
+        f.close()
+
+def write_dim_table(rawpath, outpath):
+    '''
+    Parses data produced by generate_raw_data, stored in the file rawpath, and
+    gives this as a formatted table written to the file at outpath.
+    '''
+    df  = pd.read_csv(rawpath, dtype=str)
+
+    max_tr_len = df["trace"].map(len).max()
+    max_entry_len = df[["a", "b", "c", "d"]].applymap(len).values.max()
+    max_empty_dim_len = df["empty_dim_5"].map(len).max()
+    max_total_dim_len = df["total_dim"].map(len).max()
+
+    with open(outpath, "w") as f:
+        print("TRACE\t\tMATRIX\t\tSINGLE\tEMPTY\tTOTAL\tSHELL ESTIMATES", file=f)
+        for idx, row in df.iterrows():
+            print("{tr: >{max_tr_len}s}\t\t".format(tr=row["trace"], max_tr_len=max_tr_len), end="", file=f)
+            print("[[{g00: >{max_entry_len}s} {g01: >{max_entry_len}s}] \t\t\t".format(g00=row["a"], g01=row["b"], max_entry_len=max_entry_len), end="", file=f)
+            print("{sing: >1s}\t\t\t".format(sing=row["single_dim"]), end="", file=f)
+            print("{empty: >{max_empty_dim_len}s}\t\t\t".format(empty=row["empty_dim_5"], max_empty_dim_len = max_empty_dim_len), end="", file=f)
+            print("{tot: >{max_total_dim_len}s}\t\t\t".format(tot=row["total_dim"], max_total_dim_len=max_total_dim_len), end="", file=f)
+            print("{ests}".format(ests=[row["empty_dim_0"], row["empty_dim_1"], row["empty_dim_2"], row["empty_dim_3"], row["empty_dim_4"], row["empty_dim_5"]]), file=f)
+            print(" "*max_tr_len + "\t\t" + " ", end="", file=f)
+            print("[{g10: >{max_entry_len}s} {g11: >{max_entry_len}s}]]".format(g10=row["c"], g11=row["d"], max_entry_len=max_entry_len), file=f)
+            print("", file=f)
+        f.close()
+
+
+# Handle command-line flag
+if len(sys.argv) < 2:
+    print("Error, requires a mode choice (one of: i, g, w, gw) as a command-line argument")
+    sys.exit(1)
+
+choice = sys.argv[1]
 
 # Interactive mode
 if choice == "i":
+    print("TWISTED TORUS SKEIN DIMENSION ESTIMATOR")
     print("Input an SL_2(Z)-matrix to define a twisted 3-torus.\nEnter a matix I, S, T, or enter the matrix\n\n[[a b]\n [c d]]\n\nas the string a b c d, and press return.")
     user_input = input().split(" ")
 
@@ -378,32 +475,19 @@ if choice == "i":
     # Get the dimension estimates, pass True interactive_flag to be verbose.
     get_dim_estimates_empty(gamma, n, True)
 
+# Generation mode
+elif choice == "g":
+    generate_raw_data("skein-dims-rawdata.csv")
+
 # Presentation mode:
-elif choice == "p":
+elif choice == "w":
     # Print output of dimension computations for a pre-set list of matrices.
-    I = matrix(ZZ, 2, [1, 0, 0, 1])
-    S = matrix(ZZ, 2, [0, -1, 1, 0])
-    T = matrix(ZZ, 2, [1, 1, 0, 1])
-    I_minus = matrix(ZZ, 2, [-1, 0, 0, -1])
-    S_minus = matrix(ZZ, 2, [0, 1, -1, 0])
-    T_minus = matrix(ZZ, 2, [-1, -1, 0, -1])
+    write_dim_table("skein-dims-rawdata.csv", "skein-dims-printed.txt")
 
-    matrices = [I, S, T, I_minus, S_minus, T_minus]
-
-    print("\nMATRIX\t\tSINGLE SKEIN\t\tEMPTY SKEIN (est.)\n")
-
-    # For each matrix, print it, the dimension of its single skein part, and the
-    # estimated dimension of the empty skein part.
-    for M in matrices:
-        print("[[%d %d]\n [%d %d]]\t\t\t" % (M[0, 0], M[0, 1], M[1, 0], M[1, 1]), end="")
-        dim_empty = get_dim_single_skein(M)
-        print("%d\t\t\t" % dim_empty, end="")
-
-        # NOTE: We hard-coded the shell_level here to be 5.
-        dim_estimates = get_dim_estimates_empty(M, 5, False)
-        # WARNING: We simply print the last computed estimate, taking no account
-        # of convergence, for now.
-        print("%d\n" % dim_estimates[-1])
+# Generate-write mode:
+elif choice == "gw":
+    generate_raw_data("skein-dims-rawdata.csv")
+    write_dim_table("skein-dims-rawdata.csv", "skein-dims-printed.txt")
 
 # Exit if an pinvalid mode choice is made.
 else:
