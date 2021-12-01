@@ -375,20 +375,26 @@ def generate_raw_data(path):
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "empty_dim_0", "empty_dim_1", "empty_dim_2", "empty_dim_3", "empty_dim_4", "empty_dim_5", "total_dim"])
-        trace = 0
-        for M in trace_0:
-            dim_single = get_dim_single_skein(M)
-            dim_estimates = get_dim_estimates_empty(M, 5, False)
-            dim_total = dim_single + dim_estimates[-1]
-            writer.writerow([trace, M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single] + dim_estimates + [dim_total])
+    f.close()
 
-        trace = 1
-        for M in trace_1:
-            didim_single = get_dim_single_skein(M)
-            dim_estimates = get_dim_estimates_empty(M, 5, False)
-            dim_total = dim_single + dim_estimates[-1]
+    trace = 0
+    for M in trace_0:
+        dim_single = get_dim_single_skein(M)
+        dim_estimates = get_dim_estimates_empty(M, 5, False)
+        dim_total = dim_single + dim_estimates[-1]
+        with open(path, "a", newline="") as f:
+            writer = csv.writer(f)
             writer.writerow([trace, M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single] + dim_estimates + [dim_total])
+        f.close()
 
+    trace = 1
+    for M in trace_1:
+        dim_single = get_dim_single_skein(M)
+        dim_estimates = get_dim_estimates_empty(M, 5, False)
+        dim_total = dim_single + dim_estimates[-1]
+        with open(path, "a", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([trace, M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single] + dim_estimates + [dim_total])
         f.close()
 
 def write_dim_table(rawpath, outpath):
