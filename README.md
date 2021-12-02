@@ -6,6 +6,6 @@ Takes growing shells of lattice points representing generators, finds relations,
 
 If dimension estimates stabilise as the shells grow, this suggests a version of the diamond lemma holds and gives an upper bound on the dimension.
 
-Currently only implemented naively for triangular shells, and for the basic 3-torus T^3.
+Currently only implemented naively for triangular shells.
 
 Written by Patrick Kinnear.
