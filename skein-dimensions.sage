@@ -75,6 +75,7 @@ estimation in this figure.
 import os
 import sys
 import csv
+import random as rand
 import pandas as pd
 from sage.all import *
 
@@ -369,6 +370,18 @@ def compute_and_write(M, shell_levels, path):
         writer.writerow([M.trace(), M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single, dim_total] + dim_estimates)
     f.close()
 
+def seq_has_been_checked(seq, cache):
+    '''
+    Checks is the given sequence, or any rotation thereof, is in the cache of
+    already-checked sequences.
+    '''
+    for i in range(len(seq)):
+        seq = seq[1:] + seq[:1] # Rotate the sequence once.
+        print(seq)
+        if seq in cache: # Check cache membership.
+            return True
+    return False
+
 def generate_raw_data(path, shell_levels):
     '''
     Generate several SL_2(Z) matrices, compute their skein dimension estimates,
@@ -410,6 +423,23 @@ def generate_raw_data(path, shell_levels):
         for n in range(6):
             M = (R**n)*(L**m)
             compute_and_write(M, shell_levels, path)
+
+    # Words of longer length, randomly generated
+    cache = []
+    for l in range(3, 11):
+        for attempt in range(5):
+            sequence = [rand.randint(0, 10) for i in range(l)]
+            print(sequence)
+            #Exclude previously checked sequences.
+            if not seq_has_been_checked(sequence, cache):
+                M = matrix(ZZ, 2, [1, 0, 0, 1])
+                # Build up the word indexed by this sequence
+                for i in range(len(sequence)):
+                    if i % 2 == 0:
+                        M = M*(R**sequence[i])
+                    else:
+                        M = M*(L**sequence[i])
+                compute_and_write(M, shell_levels, path)
 
 def write_dim_table(rawpath, outpath, shell_levels):
     '''
