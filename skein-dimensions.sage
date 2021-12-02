@@ -3,7 +3,7 @@
 '''
 USAGE Ensure SAGE_ROOT is stored in your PATH, and run
 
-./skein-dimensions.sage mode [rawpath [outpath [shell-level]]]
+./skein-dimensions.sage mode [rawpath [outpath]] [shell-level]
 
 where mode is a string specifying the mode, one of:
 
