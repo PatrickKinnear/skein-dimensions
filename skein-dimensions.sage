@@ -3,7 +3,7 @@
 '''
 USAGE Ensure SAGE_ROOT is stored in your PATH, and run
 
-./skein-dimensions.sage mode [rawpath [outpath]]
+./skein-dimensions.sage mode [rawpath [outpath [shell-level]]]
 
 where mode is a string specifying the mode, one of:
 
@@ -29,7 +29,7 @@ The program will generate matrices in SL_2(Z), grouped by trace, and compute the
 dimension estimate of the skein module of the twisted torus defined by this
 matrix. The data is written in raw form to a csv file in the working directory.
 The output filepath may be specified at the command line. Default is
-skein-dims-rawdata.csv.
+skein-dims-rawdata.csv. Can also specify shell level (defaults to 6).
 
 *Write Mode*
 The program will produce a table giving some SL_2(Z) matrices, the dimension of
@@ -38,7 +38,8 @@ matrix, and an estimate of the dimension of the empty skein part. The raw data
 for the table is the output of a run of generation mode, so the program must be
 run once in g mode before w mode is used. The path for the raw data file and the
 formatted output file may be specified at the command line. Defaults are
-skein-dims-rawdata.csv and skein-dims-printed.txt respectively.
+skein-dims-rawdata.csv and skein-dims-printed.txt respectively. Can also specify
+shell level (defaults to 6).
 
 *Generate-Write Mode*
 The result of running generation mode followed immediately by write mode.
@@ -349,80 +350,98 @@ def get_dim_estimates_empty(gamma, n, interactive_flag):
 
     return dimensions
 
-def generate_raw_data(path):
+def compute_and_write(M, shell_levels, path):
+    '''
+    A helper function for generate_raw_data, handles the subroutine of
+    collating the results of dimension computations for M (up to shell_levels
+    cutoff) and writes to the file at path, in append mode.
+    '''
+    # Get the dimension of the single skein, the esitmates for the empty skein
+    # (not using interactive mode), and the sum of single dimension and the last
+    # estimated empty dimension.
+    dim_single = get_dim_single_skein(M)
+    dim_estimates = get_dim_estimates_empty(M, shell_levels, False)
+    dim_total = dim_single + dim_estimates[-1]
+
+    # Write the relevant data to the output file.
+    with open(path, "a", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow([M.trace(), M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single, dim_total] + dim_estimates)
+    f.close()
+
+def generate_raw_data(path, shell_levels):
     '''
     Generate several SL_2(Z) matrices, compute their skein dimension estimates,
     and write this data to a csv file.
 
     The matrices generated are grouped by absolute value of trace.
     '''
+
     #Trace 0 matrix
     S = matrix(ZZ, 2, [0, -1, 1, 0])
-
-    trace_0 = [S]
 
     #Trace 1 matrices
     M_0 = matrix(ZZ, 2, [1, -1, 1, 0])
     M_1 = matrix(ZZ, 2, [0, 1, -1, 1])
 
-    trace_1 = [M_0, M_1]
+    low_trace = [S, M_0, M_1]
 
     #Generators for |trace| >= 2 matrices
     R = matrix(ZZ, 2, [1, 1, 0, 1])
     L = matrix(ZZ, 2, [1, 0, 1, 1])
 
-
+    # Open a file for the raw data, and write a header.
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "empty_dim_0", "empty_dim_1", "empty_dim_2", "empty_dim_3", "empty_dim_4", "empty_dim_5", "total_dim"])
+        writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "total_dim"] + ["shell_{n}".format(n=i) for i in range(shell_levels + 1)])
     f.close()
 
-    trace = 0
-    for M in trace_0:
-        dim_single = get_dim_single_skein(M)
-        dim_estimates = get_dim_estimates_empty(M, 5, False)
-        dim_total = dim_single + dim_estimates[-1]
-        with open(path, "a", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow([trace, M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single] + dim_estimates + [dim_total])
-        f.close()
+    # Compute dimensions for the 3 matrices of low trace.
+    for M in low_trace:
+        compute_and_write(M, shell_levels, path)
 
-    trace = 1
-    for M in trace_1:
-        dim_single = get_dim_single_skein(M)
-        dim_estimates = get_dim_estimates_empty(M, 5, False)
-        dim_total = dim_single + dim_estimates[-1]
-        with open(path, "a", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow([trace, M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single] + dim_estimates + [dim_total])
-        f.close()
+    # Dimensions for the family of shears.
+    for n in range(6):
+        M = R**n
+        compute_and_write(M, shell_levels, path)
 
-def write_dim_table(rawpath, outpath):
+    # Dimensions for words of length 2 in SL_2(Z)
+    for m in range(1, 6):
+        for n in range(6):
+            M = (R**n)*(L**m)
+            compute_and_write(M, shell_levels, path)
+
+def write_dim_table(rawpath, outpath, shell_levels):
     '''
     Parses data produced by generate_raw_data, stored in the file rawpath, and
     gives this as a formatted table written to the file at outpath.
     '''
     df  = pd.read_csv(rawpath, dtype=str)
 
+    #Calculate values that may be required for padding and alignment.
     max_tr_len = df["trace"].map(len).max()
     max_entry_len = df[["a", "b", "c", "d"]].applymap(len).values.max()
-    max_empty_dim_len = df["empty_dim_5"].map(len).max()
+    max_empty_dim_len = df["shell_{n}".format(n=shell_levels)].map(len).max()
     max_total_dim_len = df["total_dim"].map(len).max()
 
+    mat_line_length = 5 + max_entry_len*2
+
     with open(outpath, "w") as f:
-        print("TRACE\t\tMATRIX\t\tSINGLE\tEMPTY\tTOTAL\tSHELL ESTIMATES", file=f)
+        #Table header
+        print("TRACE\t\tMATRIX" + " "*(mat_line_length-len("MATRIX")) + "\t\tSINGLE\tEMPTY\tTOTAL\t\t\tSHELL ESTIMATES", file=f)
+
+        #Iterate through the entries and print rows.
         for idx, row in df.iterrows():
-            print("{tr: >{max_tr_len}s}\t\t".format(tr=row["trace"], max_tr_len=max_tr_len), end="", file=f)
-            print("[[{g00: >{max_entry_len}s} {g01: >{max_entry_len}s}] \t\t\t".format(g00=row["a"], g01=row["b"], max_entry_len=max_entry_len), end="", file=f)
-            print("{sing: >1s}\t\t\t".format(sing=row["single_dim"]), end="", file=f)
-            print("{empty: >{max_empty_dim_len}s}\t\t\t".format(empty=row["empty_dim_5"], max_empty_dim_len = max_empty_dim_len), end="", file=f)
-            print("{tot: >{max_total_dim_len}s}\t\t\t".format(tot=row["total_dim"], max_total_dim_len=max_total_dim_len), end="", file=f)
-            print("{ests}".format(ests=[row["empty_dim_0"], row["empty_dim_1"], row["empty_dim_2"], row["empty_dim_3"], row["empty_dim_4"], row["empty_dim_5"]]), file=f)
-            print(" "*max_tr_len + "\t\t" + " ", end="", file=f)
-            print("[{g10: >{max_entry_len}s} {g11: >{max_entry_len}s}]]".format(g10=row["c"], g11=row["d"], max_entry_len=max_entry_len), file=f)
+            print("{tr: >{max_tr_len}s}\t\t".format(tr=row["trace"], max_tr_len=max(max_tr_len, len("TRACE"))), end="", file=f)
+            print("[[{a: >{max_entry_len}s} {b: >{max_entry_len}s}] \t\t".format(a=row["a"], b=row["b"], max_entry_len=max_entry_len), end="", file=f)
+            print("{sing: >6s}\t".format(sing=row["single_dim"]), end="", file=f)
+            print("{empty: >{max_empty_dim_len}s}\t".format(empty=row["shell_{n}".format(n=shell_levels)], max_empty_dim_len = max(max_empty_dim_len, len("EMPTY"))), end="", file=f)
+            print("{tot: >{max_total_dim_len}s}\t\t\t".format(tot=row["total_dim"], max_total_dim_len=max(max_total_dim_len, len("TOTAL"))), end="", file=f)
+            print("{ests}".format(ests=row[["shell_{n}".format(n=i) for i in range(shell_levels + 1)]].values.tolist()), file=f)
+            print(" "*max(max_tr_len,  5) + "\t\t" + " ", end="", file=f)
+            print("[{c: >{max_entry_len}s} {d: >{max_entry_len}s}]]".format(c=row["c"], d=row["d"], max_entry_len=max_entry_len), file=f)
             print("", file=f)
         f.close()
-
 
 # Handle command-line flag
 if len(sys.argv) < 2:
@@ -488,32 +507,42 @@ if choice == "i":
 # Generation mode
 elif choice == "g":
     path = "skein-dims-rawdata.csv"
+    shell_levels = 6
     if len(sys.argv) >= 3:
         path = sys.argv[2]
-    generate_raw_data(path)
+        if len(sys.argv) >= 4:
+            shell_levels = int(sys.argv[3])
+
+    generate_raw_data(path, shell_levels)
 
 # Presentation mode:
 elif choice == "w":
     rawpath = "skein-dims-rawdata.csv"
     outpath = "skein-dims-printed.txt"
+    shell_levels = 6
     if len(sys.argv) >= 3:
         rawpath = sys.argv[2]
         if len(sys.argv) >= 4:
             outpath = sys.argv[3]
+            if len(sys.argv) >= 5:
+                shell_levels = int(sys.argv[4])
 
-    write_dim_table(rawpath, outpath)
+    write_dim_table(rawpath, outpath, shell_levels)
 
 # Generate-write mode:
 elif choice == "gw":
     rawpath = "skein-dims-rawdata.csv"
     outpath = "skein-dims-printed.txt"
+    shell_levels = 6
     if len(sys.argv) >= 3:
         rawpath = sys.argv[2]
         if len(sys.argv) >= 4:
             outpath = sys.argv[3]
+            if len(sys.argv) >= 5:
+                shell_levels = int(sys.argv[4])
 
-    generate_raw_data(rawpath)
-    write_dim_table(rawpath, outpath)
+    generate_raw_data(rawpath, shell_levels)
+    write_dim_table(rawpath, outpath, shell_levels)
 
 # Exit if an pinvalid mode choice is made.
 else:
