@@ -370,6 +370,48 @@ def compute_and_write(M, shell_levels, path):
         writer.writerow([M.trace(), M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single, dim_total] + dim_estimates)
     f.close()
 
+    print("Written")
+
+def compute_write_low_trace(shell_levels, path):
+    '''
+    Perform the computations for matrices of trace with abs val < 2, with a
+    specified max shell level, and write to the file at path.
+    '''
+    #Trace 0 matrix
+    S = matrix(ZZ, 2, [0, -1, 1, 0])
+
+    #Trace 1 matrices
+    M_0 = matrix(ZZ, 2, [1, -1, 1, 0])
+    M_1 = matrix(ZZ, 2, [0, 1, -1, 1])
+
+    low_trace = [S, M_0, M_1]
+
+    # Compute dimensions for the 3 matrices of low trace.
+    for M in low_trace:
+        compute_and_write(M, shell_levels, path)
+
+def compute_write_from_seq(sequence, shell_levels, path):
+    '''
+    Performs the dimension computations for an SL_2(Z) matrix of form
+        R^{a_1}L^{a_2}...(R or L)^{a_k}
+    given a sequence (a_k). Computations performed up to a max shell level, and
+    written to path.
+    '''
+    #Generators for |trace| >= 2 matrices
+    R = matrix(ZZ, 2, [1, 1, 0, 1])
+    L = matrix(ZZ, 2, [1, 0, 1, 1])
+
+    M = matrix(ZZ, 2, [1, 0, 0, 1])
+    # Build up the word indexed by this sequence
+    for i in range(len(sequence)):
+        if i % 2 == 0:
+            M = M*(R**sequence[i])
+        else:
+            M = M*(L**sequence[i])
+    compute_and_write(M, shell_levels, path)
+
+    return None
+
 def seq_has_been_checked(seq, cache):
     '''
     Checks is the given sequence, or any rotation thereof, is in the cache of
@@ -377,7 +419,6 @@ def seq_has_been_checked(seq, cache):
     '''
     for i in range(len(seq)):
         seq = seq[1:] + seq[:1] # Rotate the sequence once.
-        print(seq)
         if seq in cache: # Check cache membership.
             return True
     return False
@@ -390,39 +431,23 @@ def generate_raw_data(path, shell_levels):
     The matrices generated are grouped by absolute value of trace.
     '''
 
-    #Trace 0 matrix
-    S = matrix(ZZ, 2, [0, -1, 1, 0])
-
-    #Trace 1 matrices
-    M_0 = matrix(ZZ, 2, [1, -1, 1, 0])
-    M_1 = matrix(ZZ, 2, [0, 1, -1, 1])
-
-    low_trace = [S, M_0, M_1]
-
-    #Generators for |trace| >= 2 matrices
-    R = matrix(ZZ, 2, [1, 1, 0, 1])
-    L = matrix(ZZ, 2, [1, 0, 1, 1])
-
     # Open a file for the raw data, and write a header.
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "total_dim"] + ["shell_{n}".format(n=i) for i in range(shell_levels + 1)])
     f.close()
 
-    # Compute dimensions for the 3 matrices of low trace.
-    for M in low_trace:
-        compute_and_write(M, shell_levels, path)
+    # Dimensions for low trace matrices.
+    #compute_write_low_trace(shell_levels, path)
 
     # Dimensions for the family of shears.
-    for n in range(6):
-        M = R**n
-        compute_and_write(M, shell_levels, path)
+    #for n in range(6):
+    #    compute_write_from_seq([n], shell_levels, path)
 
     # Dimensions for words of length 2 in SL_2(Z)
-    for m in range(1, 6):
-        for n in range(6):
-            M = (R**n)*(L**m)
-            compute_and_write(M, shell_levels, path)
+    #for m in range(1, 6):
+    #    for n in range(6):
+    #        compute_write_from_seq([m, n], shell_levels, path)
 
     # Words of longer length, randomly generated
     cache = []
@@ -432,14 +457,7 @@ def generate_raw_data(path, shell_levels):
             print(sequence)
             #Exclude previously checked sequences.
             if not seq_has_been_checked(sequence, cache):
-                M = matrix(ZZ, 2, [1, 0, 0, 1])
-                # Build up the word indexed by this sequence
-                for i in range(len(sequence)):
-                    if i % 2 == 0:
-                        M = M*(R**sequence[i])
-                    else:
-                        M = M*(L**sequence[i])
-                compute_and_write(M, shell_levels, path)
+                compute_write_from_seq(sequence, shell_levels, path)
 
 def write_dim_table(rawpath, outpath, shell_levels):
     '''
