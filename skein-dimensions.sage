@@ -274,13 +274,13 @@ def get_dim_single_skein(gamma):
     part of the twisted torus, where gamma is an SL_2(Z)-matrix defining the
     twisting.
 
-    The vector space in question is a quotient of C[X, Y]/(X^2, Y^2) by
+    The vector space in question is a quotient of C[X, Y]/(X^2 - 1 , Y^2 - 1) by
     some relations. The basis {1, X, Y, XY} is represented by vectors of length
     2 with Z/2-entries, i.e. X^aY^b is [a, b], and these are ordered
     lexicographically.
 
     The implementation is similar to get_relations: for all pairs of basis
-    elements of C[X, Y]/(X^2, Y^2) we get the gamma-twisted commutators, then
+    elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators, then
     the corank of these relations is the required dimension.
     '''
     Z_2 = Integers(2) # Integers mod 2
@@ -315,6 +315,25 @@ def get_dim_single_skein(gamma):
 
     return dim
 
+def compute_corank(gamma, shell_level, interactive_flag):
+    # For each shell level, compute #{lattice points}.
+    N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+    if interactive_flag:
+        print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
+    relations = get_relations_empty(gamma, shell_level, order_lrtb)
+    if interactive_flag:
+        print("Found %d (non-independent) relations. Reducing ..." % len(relations))
+    # Form a relation matrix, compute its pivots; the dimension estimate is the
+    # co-rank.
+    A = matrix(QQ['q'].fraction_field(), relations)
+    pivots = A.pivots()
+    dim_estimate = N - len(pivots)
+    if interactive_flag:
+        print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
+        print_generators(shell_level, pivots, order_lrtb)
+
+    return dim_estimate
+
 
 def get_dim_estimates_empty(gamma, n, interactive_flag):
     '''
@@ -331,22 +350,7 @@ def get_dim_estimates_empty(gamma, n, interactive_flag):
 
     # Estimate the skein module dimension for each shell level.
     for shell_level in range(n+1):
-        # For each shell level, compute #{lattice points}.
-        N = (2*shell_level + 1)*(shell_level + 1) - shell_level
-        if interactive_flag:
-            print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
-        relations = get_relations_empty(gamma, shell_level, order_lrtb)
-        if interactive_flag:
-            print("Found %d (non-independent) relations. Reducing ..." % len(relations))
-        # Form a relation matrix, compute its pivots; the dimension estimate is the
-        # co-rank.
-        A = matrix(QQ['q'].fraction_field(), relations)
-        pivots = A.pivots()
-        dim_estimate = N - len(pivots)
-        if interactive_flag:
-            print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
-            print_generators(shell_level, pivots, order_lrtb)
-
+        dim_estimate = compute_corank(gamma, shell_level, interactive_flag)
         dimensions.append(dim_estimate)
 
     return dimensions
@@ -396,6 +400,9 @@ def compute_write_from_seq(sequence, shell_levels, path):
         R^{a_1}L^{a_2}...(R or L)^{a_k}
     given a sequence (a_k). Computations performed up to a max shell level, and
     written to path.
+    Here R = [[1, 1], [0, 1]], L = [[1, 0], [1, 1]] so that R^n is
+    [[1, n], [0, 1]] and this is how we implement the exponentiation (similar
+    for L).
     '''
     #Generators for |trace| >= 2 matrices
     R = matrix(ZZ, 2, [1, 1, 0, 1])
@@ -405,10 +412,11 @@ def compute_write_from_seq(sequence, shell_levels, path):
     # Build up the word indexed by this sequence
     for i in range(len(sequence)):
         if i % 2 == 0:
-            M = M*(R**sequence[i])
+            #Multiply by R^a
+            M = M*matrix(ZZ, 2, [1, sequence[i], 0, 1])
         else:
-            M = M*(L**sequence[i])
-    compute_and_write(M, shell_levels, path)
+            #Multiply by L^a
+            M = M*matrix(ZZ, 2, [1, 0, sequence[i], 1])
 
     return None
 
@@ -588,7 +596,6 @@ elif choice == "gw":
             outpath = sys.argv[3]
             if len(sys.argv) >= 5:
                 shell_levels = int(sys.argv[4])
-
     generate_raw_data(rawpath, shell_levels)
     write_dim_table(rawpath, outpath, shell_levels)
 
