@@ -175,10 +175,10 @@ def get_relations_empty(gamma, shell_level, order_func):
             # Check the relations are not out of range.
             if x_0_tuple in ordering.keys() and x_1_tuple in ordering.keys() and x_2_tuple in ordering.keys() and x_3_tuple in ordering.keys():
                 #Create vectors corresponding to the four lattice points.
-                x_0_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_0_tuple] else 0 for i in range(N)])
-                x_1_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_1_tuple] else 0 for i in range(N)])
-                x_2_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_2_tuple] else 0 for i in range(N)])
-                x_3_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_3_tuple] else 0 for i in range(N)])
+                x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0_tuple] else 0 for i in range(N)], sparse=True)
+                x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1_tuple] else 0 for i in range(N)], sparse=True)
+                x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2_tuple] else 0 for i in range(N)], sparse=True)
+                x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3_tuple] else 0 for i in range(N)], sparse=True)
 
                 # Compute the coefficients in the relation.
                 Q_0 = q**(-s*t)
@@ -325,7 +325,7 @@ def compute_corank(gamma, shell_level, interactive_flag):
         print("Found %d (non-independent) relations. Reducing ..." % len(relations))
     # Form a relation matrix, compute its pivots; the dimension estimate is the
     # co-rank.
-    A = matrix(QQ['q'].fraction_field(), relations)
+    A = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
     pivots = A.pivots()
     dim_estimate = N - len(pivots)
     if interactive_flag:
@@ -374,7 +374,7 @@ def compute_and_write(M, shell_levels, path):
         writer.writerow([M.trace(), M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single, dim_total] + dim_estimates)
     f.close()
 
-    print("Written")
+    return None
 
 def compute_write_low_trace(shell_levels, path):
     '''
@@ -393,6 +393,8 @@ def compute_write_low_trace(shell_levels, path):
     # Compute dimensions for the 3 matrices of low trace.
     for M in low_trace:
         compute_and_write(M, shell_levels, path)
+
+    return None
 
 def compute_write_from_seq(sequence, shell_levels, path):
     '''
@@ -418,6 +420,7 @@ def compute_write_from_seq(sequence, shell_levels, path):
             #Multiply by L^a
             M = M*matrix(ZZ, 2, [1, 0, sequence[i], 1])
 
+    compute_and_write(M, shell_levels, path)
     return None
 
 def seq_has_been_checked(seq, cache):
