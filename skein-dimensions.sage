@@ -112,6 +112,30 @@ def order_lrtb(shell_level):
                 b -= 1
     return order_dict
 
+def order_better(shell_level):
+
+    if shell_level == 0:
+        order_dict = {vector(ZZ, [0, 0], immutable=True) : 0}
+
+    else:
+        order_dict = order_better(shell_level - 1)
+        place = len(order_dict.keys())
+
+        b = shell_level
+        a = -1*shell_level
+
+        while a < shell_level:
+             order_dict.update({vector(ZZ, [a, b], immutable=True) : place})
+             place += 1
+             a += 1
+
+        while b > -1*shell_level:
+            order_dict.update({vector(ZZ, [a, b], immutable=True) : place})
+            place += 1
+            b -= 1
+
+    return order_dict
+
 def get_relations_empty(gamma, shell_level, order_func):
     '''
     Returns a list of linear relations between lattice points for a specified
@@ -206,8 +230,8 @@ def print_generators(shell_level, pivots, order_func):
             for x in range(-1*shell_level, shell_level + 1):
                 # If a point is in the shell, check if it is NOT a pivot of the
                 # relation matrix.
-                if (x, y) in ordering.keys():
-                    if not ordering[(x, y)] in pivots:
+                if vector(ZZ, [x, y], immutable=True) in ordering.keys():
+                    if not ordering[vector(ZZ, [x, y], immutable=True)] in pivots:
                         print("x ", end="") #Place an x for spanning vectors.
                     elif x == 0 and y == 0:
                         print("+ ", end="") #Origin.
