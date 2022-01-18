@@ -75,6 +75,7 @@ estimation in this figure.
 import os
 import sys
 import csv
+import random as rand
 import pandas as pd
 from sage.all import *
 
@@ -87,7 +88,6 @@ def order_lrtb(shell_level):
     shell.
     '''
     order_dict = {}
-    points_in_order = []
     place = 0 # Place of the current lattice point in the order (to increment)
 
     # Incrementally loop over a, then decrement through b until we reach the
@@ -99,8 +99,7 @@ def order_lrtb(shell_level):
             while (a + b) >= 0:
                 # Populate dict entry, increment place for next point,
                 # decrement y coord.
-                order_dict.update({(a, b): place})
-                points_in_order.append(vector(ZZ, [a, b]))
+                order_dict.update({vector(ZZ, [a, b], immutable=True): place})
                 place += 1
                 b -= 1
         else:
@@ -108,11 +107,10 @@ def order_lrtb(shell_level):
             while (a + b) >= 1:
                 # Populate dict entry, increment place for next point,
                 # decrement y coord.
-                order_dict.update({(a, b): place})
-                points_in_order.append(vector(ZZ, [a, b]))
+                order_dict.update({vector(ZZ, [a, b], immutable=True): place})
                 place += 1
                 b -= 1
-    return (order_dict, points_in_order)
+    return order_dict
 
 def get_relations_empty(gamma, shell_level, order_func):
     '''
@@ -138,7 +136,7 @@ def get_relations_empty(gamma, shell_level, order_func):
 
     relations = []
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level # Total lattice pts.
-    ordering, points_in_order = order_func(shell_level) # Dict and list of order
+    ordering = order_func(shell_level) # Dict and list of order
 
     #Unpack the matrix gamma.
     a = gamma[0, 0]
@@ -148,8 +146,8 @@ def get_relations_empty(gamma, shell_level, order_func):
 
     q = var('q') # Must be defined here to alllow compiled sage.
 
-    for p_0 in points_in_order:
-        for p_1 in points_in_order:
+    for p_0 in ordering.keys():
+        for p_1 in ordering.keys():
             #Unpack the points
             r = p_0[0]
             s = p_0[1]
@@ -160,24 +158,18 @@ def get_relations_empty(gamma, shell_level, order_func):
             K = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
 
             # The linear relation is between the four lattice points below:
-            x_0 = p_0 + p_1
-            x_1 = p_0 - p_1
-            x_2 = p_0 + p_1*gamma.T
-            x_3 = p_0 - p_1*gamma.T
-
-            #Get tuple versions of the above (to access the order dict)
-            x_0_tuple = tuple([i for i in x_0])
-            x_1_tuple = tuple([i for i in x_1])
-            x_2_tuple = tuple([i for i in x_2])
-            x_3_tuple = tuple([i for i in x_3])
+            x_0 = vector(ZZ, p_0 + p_1, immutable=True)
+            x_1 = vector(ZZ, p_0 - p_1, immutable=True)
+            x_2 = vector(ZZ, p_0 + p_1*gamma.T, immutable=True)
+            x_3 = vector(ZZ, p_0 - p_1*gamma.T, immutable=True)
 
             # Check the relations are not out of range.
-            if x_0_tuple in ordering.keys() and x_1_tuple in ordering.keys() and x_2_tuple in ordering.keys() and x_3_tuple in ordering.keys():
+            if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
                 #Create vectors corresponding to the four lattice points.
-                x_0_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_0_tuple] else 0 for i in range(N)])
-                x_1_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_1_tuple] else 0 for i in range(N)])
-                x_2_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_2_tuple] else 0 for i in range(N)])
-                x_3_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_3_tuple] else 0 for i in range(N)])
+                x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
+                x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
+                x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
                 # Compute the coefficients in the relation.
                 Q_0 = q**(-s*t)
@@ -191,6 +183,7 @@ def get_relations_empty(gamma, shell_level, order_func):
                 # Check the relation is not trivial, then append.
                 if not rel.is_zero():
                     relations.append(rel)
+
     return relations
 
 def print_generators(shell_level, pivots, order_func):
@@ -207,7 +200,7 @@ def print_generators(shell_level, pivots, order_func):
     if 2*(2*shell_level + 1) > max_width:
         print("Cannot display spanning set graphically.")
     else:
-        ordering = order_func(shell_level)[0] # Dictionary giving points order.
+        ordering = order_func(shell_level) # Dictionary giving points order.
         # Walk through (part of) the lattice Z^2 row by row, left to right.
         for y in range(shell_level, -1*shell_level - 1, -1):
             for x in range(-1*shell_level, shell_level + 1):
@@ -273,13 +266,13 @@ def get_dim_single_skein(gamma):
     part of the twisted torus, where gamma is an SL_2(Z)-matrix defining the
     twisting.
 
-    The vector space in question is a quotient of C[X, Y]/(X^2, Y^2) by
+    The vector space in question is a quotient of C[X, Y]/(X^2 - 1 , Y^2 - 1) by
     some relations. The basis {1, X, Y, XY} is represented by vectors of length
     2 with Z/2-entries, i.e. X^aY^b is [a, b], and these are ordered
     lexicographically.
 
     The implementation is similar to get_relations: for all pairs of basis
-    elements of C[X, Y]/(X^2, Y^2) we get the gamma-twisted commutators, then
+    elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators, then
     the corank of these relations is the required dimension.
     '''
     Z_2 = Integers(2) # Integers mod 2
@@ -467,7 +460,7 @@ if choice == "i":
         elif user_input[0] == "T":
             print("Estimating dimensions for the matrix gamma = T...\n")
             gamma = matrix(ZZ, 2, [1, 1, 0, 1])
-        if user_input[0] == "-I":
+        elif user_input[0] == "-I":
             print("Estimating dimensions for the matrix gamma = -I...\n")
             gamma = matrix(ZZ, 2, [-1, 0, 0, -1])
         elif user_input[0] == "-S":
