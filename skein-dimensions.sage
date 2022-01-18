@@ -351,7 +351,7 @@ def get_dim_estimates_empty(gamma, n, interactive_flag):
         N = (2*shell_level + 1)*(shell_level + 1) - shell_level
         if interactive_flag:
             print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
-        relations = get_relations_empty(gamma, shell_level, order_lrtb)
+        relations = get_relations_empty(gamma, shell_level, order_better)
         if interactive_flag:
             print("Found %d (non-independent) relations. Reducing ..." % len(relations))
         # Form a relation matrix, compute its pivots; the dimension estimate is the
