@@ -252,30 +252,26 @@ def order_lexi():
     C[X, Y]/(X^2, Y^2). The element R = X^aY^b is the vector r = [a, b], so that
     RS is given by rs and gamma.R is r*gamma.T, and the basis is {1, X, Y, XY}.
 
-    Returns a tuple (order_dict, in_order) giving lexicographical ordering on
-    these vectors.
+    Returns a dictionary giving lexicographical ordering on these vectors.
 
     order_dict: keys are 2d vectors (with Z/2 entries), values are their place
     in the lexicographical ordering: used to pass from r to the 4d vector R. The
-    keys must be tuples to be hashable.
-
-    in_order: a list of the vectors, as 2d sage vectors, in lexicographical
-    order.
+    keys must be immutable to be hashable. The order dict is itself in order,
+    and the ordering persists (from Python 3.7), i.e. oder-dict.keys() is an
+    iterable with the vectors given in the ordering.
     '''
     Z_2 = Integers(2) # Work mod 2
     order_dict = {}
-    in_order = []
     place = 0 # Record the place in the ordering
 
     # Iterate over (Z/2)^2 in lexicographical order
     for a_0 in Z_2:
         for a_1 in Z_2:
             # Update the dict and list
-            order_dict.update({(a_0, a_1) : place})
-            in_order.append(vector([a_0, a_1]))
+            order_dict.update({vector(Z_2, [a_0, a_1], immutable=True) : place})
             place += 1
 
-    return (order_dict, in_order)
+    return order_dict
 
 def get_dim_single_skein(gamma):
     '''
@@ -293,24 +289,20 @@ def get_dim_single_skein(gamma):
     the corank of these relations is the required dimension.
     '''
     Z_2 = Integers(2) # Integers mod 2
-    order_dict, in_order = order_lexi() # A dict and list to order the basis
+    order_dict = order_lexi() # A dict and list to order the basis
 
     rels = [] # Ready to record the twisted commutator relations.
 
     # Walk thru pairs of basis elements (R, S) viewed as 1x2 Z/2 vectors (r, s)
-    for r in in_order:
-        for s in in_order:
-            first_term = r + s # First term in the commutator is RS, i.e. r + s
-            second_term = s*gamma.T + r # Second term is twisted by Gamma
-
-            # Turn these into tuples to access the order dict
-            first_term_tuple = tuple([i for i in first_term])
-            second_term_tuple = tuple([i for i in second_term])
+    for r in order_dict.keys():
+        for s in order_dict.keys():
+            first_term = vector(Z_2, r + s, immutable=True) # First term in the commutator is RS, i.e. r + s
+            second_term = vector(Z_2, s*gamma.T + r, immutable=True) # Second term is twisted by Gamma
 
             # Use the order dict to view each term of the relation as a vector
             # in a 4d vecctor space.
-            first_term_vector = vector(QQ, [1 if i == order_dict[first_term_tuple] else 0 for i in range(4)])
-            second_term_vector = vector(QQ, [1 if i == order_dict[second_term_tuple] else 0 for i in range(4)])
+            first_term_vector = vector(QQ, [1 if i == order_dict[first_term] else 0 for i in range(4)])
+            second_term_vector = vector(QQ, [1 if i == order_dict[second_term] else 0 for i in range(4)])
 
             #Get the relation, and append it if non-trivial.
             rel = first_term_vector - second_term_vector
