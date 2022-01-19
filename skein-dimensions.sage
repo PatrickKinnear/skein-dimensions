@@ -79,56 +79,49 @@ import random as rand
 import pandas as pd
 from sage.all import *
 
-def order_lrtb(shell_level):
+def order_by_shell_level(shell_level):
     '''
-    Returns a tuple consisting of: a dictionary giving an order to the lattice
-    points in a triangular shell, and a list giving the points in order.
-    Ordering given by: (a, b) < (c, d) if a < c; (a, b) < (a, c) if b > c.
-    That is, ordering goes left-right, top-bottom (lrtb) through the triangular
-    shell.
+    Returns a dictionary giving an order to the lattice points in a triangular
+    shell. The ordering within the dictionary (dict order persists from Python
+    3.7) is the ordering, and the dict is used for a fast lookup of ordering of
+    the points.
+    Ordering is given by shell level, and within this goes left-right,
+    top-bottom. E.g
+
+                    13 14 15 16 17 18 19
+                        5  6  7  8  9 20
+                           1  2  3 10 21
+                              0  4 11 22
+                                   12 23
+                                      24
+
+
+    The order is to use the points to index a basis of the space which is
+    quotiented by the twisted commutator relations. The keys in the order dict
+    are immutable sage vectors in ZZ, values are position in ordering.
+    Implemented recursively.
     '''
-    order_dict = {}
-    place = 0 # Place of the current lattice point in the order (to increment)
-
-    # Incrementally loop over a, then decrement through b until we reach the
-    # edge of the shell.
-    for a in range(-1*shell_level, shell_level+1):
-        b = shell_level
-        if a <= 0:
-            #Here the shell edge is the line y = -x; decrement until this point.
-            while (a + b) >= 0:
-                # Populate dict entry, increment place for next point,
-                # decrement y coord.
-                order_dict.update({vector(ZZ, [a, b], immutable=True): place})
-                place += 1
-                b -= 1
-        else:
-            #Here the shell edge is the line y = -x + 1; decrement to this point
-            while (a + b) >= 1:
-                # Populate dict entry, increment place for next point,
-                # decrement y coord.
-                order_dict.update({vector(ZZ, [a, b], immutable=True): place})
-                place += 1
-                b -= 1
-    return order_dict
-
-def order_better(shell_level):
-
+    # Base case: shell level 0
     if shell_level == 0:
         order_dict = {vector(ZZ, [0, 0], immutable=True) : 0}
 
+    # Otherwise, recurse
     else:
-        order_dict = order_better(shell_level - 1)
+        order_dict = order_by_shell_level(shell_level - 1)
         place = len(order_dict.keys())
 
+        # We will walk through points (a, b) in the L shape of points in shell
+        # level n but not level n-1.
         b = shell_level
         a = -1*shell_level
 
+        # We turn the corner for a = b = shell_level.
         while a < shell_level:
              order_dict.update({vector(ZZ, [a, b], immutable=True) : place})
              place += 1
              a += 1
 
+        #Here the shell edge is the line y = -x + 1; decrement to this point
         while b > -1*shell_level:
             order_dict.update({vector(ZZ, [a, b], immutable=True) : place})
             place += 1
@@ -351,7 +344,7 @@ def get_dim_estimates_empty(gamma, n, interactive_flag):
         N = (2*shell_level + 1)*(shell_level + 1) - shell_level
         if interactive_flag:
             print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
-        relations = get_relations_empty(gamma, shell_level, order_better)
+        relations = get_relations_empty(gamma, shell_level, order_by_shell_level)
         if interactive_flag:
             print("Found %d (non-independent) relations. Reducing ..." % len(relations))
         # Form a relation matrix, compute its pivots; the dimension estimate is the
@@ -361,7 +354,7 @@ def get_dim_estimates_empty(gamma, n, interactive_flag):
         dim_estimate = N - len(pivots)
         if interactive_flag:
             print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
-            print_generators(shell_level, pivots, order_lrtb)
+            print_generators(shell_level, pivots, order_by_shell_level)
 
         dimensions.append(dim_estimate)
 
