@@ -1,6 +1,7 @@
 #!/usr/bin/env sage
 
 '''
+This is Alisa
 USAGE Ensure SAGE_ROOT is stored in your PATH, and run
 
 ./skein-dimensions.sage mode [rawpath [outpath]] [shell-level]
