@@ -1,6 +1,7 @@
 #!/usr/bin/env sage
 
 '''
+This is Alisa
 USAGE Ensure SAGE_ROOT is stored in your PATH, and run
 
 ./skein-dimensions.sage mode [rawpath [outpath]] [shell-level]
@@ -183,7 +184,7 @@ def get_new_relations_empty(gamma, shell_level, order_func):
 
             # Check the relations are not out of range.
             if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
-                if #IS NOT IN LOWER SHELL LEVEL : USE ORDER DICT
+                if x is
 
                     #Create vectors corresponding to the four lattice points.
                     x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
@@ -321,7 +322,7 @@ def get_dim_single_skein(gamma):
 
 def compute_reduced_matrix(gamma, shell_level, interactive_flag):
     if shell_level == 0:
-        return (ZERO MATRIX, [1])
+        return (matrix(QQ,[]), [1])
     else:
         # For each shell level, compute #{lattice points}.
         N = (2*shell_level + 1)*(shell_level + 1) - shell_level
