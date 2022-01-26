@@ -80,41 +80,55 @@ import random as rand
 import pandas as pd
 from sage.all import *
 
-def order_lrtb(shell_level):
+def order_by_shell_level(shell_level):
     '''
-    Returns a tuple consisting of: a dictionary giving an order to the lattice
-    points in a triangular shell, and a list giving the points in order.
-    Ordering given by: (a, b) < (c, d) if a < c; (a, b) < (a, c) if b > c.
-    That is, ordering goes left-right, top-bottom (lrtb) through the triangular
-    shell.
-    '''
-    order_dict = {}
-    points_in_order = []
-    place = 0 # Place of the current lattice point in the order (to increment)
+    Returns a dictionary giving an order to the lattice points in a triangular
+    shell. The ordering within the dictionary (dict order persists from Python
+    3.7) is the ordering, and the dict is used for a fast lookup of ordering of
+    the points.
+    Ordering is given by shell level, and within this goes left-right,
+    top-bottom. E.g
 
-    # Incrementally loop over a, then decrement through b until we reach the
-    # edge of the shell.
-    for a in range(-1*shell_level, shell_level+1):
+                    13 14 15 16 17 18 19
+                        5  6  7  8  9 20
+                           1  2  3 10 21
+                              0  4 11 22
+                                   12 23
+                                      24
+
+
+    The order is to use the points to index a basis of the space which is
+    quotiented by the twisted commutator relations. The keys in the order dict
+    are immutable sage vectors in ZZ, values are position in ordering.
+    Implemented recursively.
+    '''
+    # Base case: shell level 0
+    if shell_level == 0:
+        order_dict = {vector(ZZ, [0, 0], immutable=True) : 0}
+
+    # Otherwise, recurse
+    else:
+        order_dict = order_by_shell_level(shell_level - 1)
+        place = len(order_dict.keys())
+
+        # We will walk through points (a, b) in the L shape of points in shell
+        # level n but not level n-1.
         b = shell_level
-        if a <= 0:
-            #Here the shell edge is the line y = -x; decrement until this point.
-            while (a + b) >= 0:
-                # Populate dict entry, increment place for next point,
-                # decrement y coord.
-                order_dict.update({(a, b): place})
-                points_in_order.append(vector(ZZ, [a, b]))
-                place += 1
-                b -= 1
-        else:
-            #Here the shell edge is the line y = -x + 1; decrement to this point
-            while (a + b) >= 1:
-                # Populate dict entry, increment place for next point,
-                # decrement y coord.
-                order_dict.update({(a, b): place})
-                points_in_order.append(vector(ZZ, [a, b]))
-                place += 1
-                b -= 1
-    return (order_dict, points_in_order)
+        a = -1*shell_level
+
+        # We turn the corner for a = b = shell_level.
+        while a < shell_level:
+             order_dict.update({vector(ZZ, [a, b], immutable=True) : place})
+             place += 1
+             a += 1
+
+        #Here the shell edge is the line y = -x + 1; decrement to this point
+        while b > -1*shell_level:
+            order_dict.update({vector(ZZ, [a, b], immutable=True) : place})
+            place += 1
+            b -= 1
+
+    return order_dict
 
 def get_relations_empty(gamma, shell_level, order_func):
     '''
@@ -140,7 +154,7 @@ def get_relations_empty(gamma, shell_level, order_func):
 
     relations = []
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level # Total lattice pts.
-    ordering, points_in_order = order_func(shell_level) # Dict and list of order
+    ordering = order_func(shell_level) # Dict and list of order
 
     #Unpack the matrix gamma.
     a = gamma[0, 0]
@@ -150,8 +164,8 @@ def get_relations_empty(gamma, shell_level, order_func):
 
     q = var('q') # Must be defined here to alllow compiled sage.
 
-    for p_0 in points_in_order:
-        for p_1 in points_in_order:
+    for p_0 in ordering.keys():
+        for p_1 in ordering.keys():
             #Unpack the points
             r = p_0[0]
             s = p_0[1]
@@ -162,24 +176,19 @@ def get_relations_empty(gamma, shell_level, order_func):
             K = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
 
             # The linear relation is between the four lattice points below:
-            x_0 = p_0 + p_1
-            x_1 = p_0 - p_1
-            x_2 = p_0 + p_1*gamma.T
-            x_3 = p_0 - p_1*gamma.T
-
-            #Get tuple versions of the above (to access the order dict)
-            x_0_tuple = tuple([i for i in x_0])
-            x_1_tuple = tuple([i for i in x_1])
-            x_2_tuple = tuple([i for i in x_2])
-            x_3_tuple = tuple([i for i in x_3])
+            x_0 = vector(ZZ, p_0 + p_1, immutable=True)
+            x_1 = vector(ZZ, p_0 - p_1, immutable=True)
+            x_2 = vector(ZZ, p_0 + p_1*gamma.T, immutable=True)
+            x_3 = vector(ZZ, p_0 - p_1*gamma.T, immutable=True)
 
             # Check the relations are not out of range.
-            if x_0_tuple in ordering.keys() and x_1_tuple in ordering.keys() and x_2_tuple in ordering.keys() and x_3_tuple in ordering.keys():
+            if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
                 #Create vectors corresponding to the four lattice points.
-                x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0_tuple] else 0 for i in range(N)], sparse=True)
-                x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1_tuple] else 0 for i in range(N)], sparse=True)
-                x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2_tuple] else 0 for i in range(N)], sparse=True)
-                x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3_tuple] else 0 for i in range(N)], sparse=True)
+                
+                x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
+                x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
+                x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
                 # Compute the coefficients in the relation.
                 Q_0 = q**(-s*t)
@@ -193,6 +202,7 @@ def get_relations_empty(gamma, shell_level, order_func):
                 # Check the relation is not trivial, then append.
                 if not rel.is_zero():
                     relations.append(rel)
+
     return relations
 
 def print_generators(shell_level, pivots, order_func):
@@ -209,14 +219,14 @@ def print_generators(shell_level, pivots, order_func):
     if 2*(2*shell_level + 1) > max_width:
         print("Cannot display spanning set graphically.")
     else:
-        ordering = order_func(shell_level)[0] # Dictionary giving points order.
+        ordering = order_func(shell_level) # Dictionary giving points order.
         # Walk through (part of) the lattice Z^2 row by row, left to right.
         for y in range(shell_level, -1*shell_level - 1, -1):
             for x in range(-1*shell_level, shell_level + 1):
                 # If a point is in the shell, check if it is NOT a pivot of the
                 # relation matrix.
-                if (x, y) in ordering.keys():
-                    if not ordering[(x, y)] in pivots:
+                if vector(ZZ, [x, y], immutable=True) in ordering.keys():
+                    if not ordering[vector(ZZ, [x, y], immutable=True)] in pivots:
                         print("x ", end="") #Place an x for spanning vectors.
                     elif x == 0 and y == 0:
                         print("+ ", end="") #Origin.
@@ -244,30 +254,26 @@ def order_lexi():
     C[X, Y]/(X^2, Y^2). The element R = X^aY^b is the vector r = [a, b], so that
     RS is given by rs and gamma.R is r*gamma.T, and the basis is {1, X, Y, XY}.
 
-    Returns a tuple (order_dict, in_order) giving lexicographical ordering on
-    these vectors.
+    Returns a dictionary giving lexicographical ordering on these vectors.
 
     order_dict: keys are 2d vectors (with Z/2 entries), values are their place
     in the lexicographical ordering: used to pass from r to the 4d vector R. The
-    keys must be tuples to be hashable.
-
-    in_order: a list of the vectors, as 2d sage vectors, in lexicographical
-    order.
+    keys must be immutable to be hashable. The order dict is itself in order,
+    and the ordering persists (from Python 3.7), i.e. oder-dict.keys() is an
+    iterable with the vectors given in the ordering.
     '''
     Z_2 = Integers(2) # Work mod 2
     order_dict = {}
-    in_order = []
     place = 0 # Record the place in the ordering
 
     # Iterate over (Z/2)^2 in lexicographical order
     for a_0 in Z_2:
         for a_1 in Z_2:
             # Update the dict and list
-            order_dict.update({(a_0, a_1) : place})
-            in_order.append(vector([a_0, a_1]))
+            order_dict.update({vector(Z_2, [a_0, a_1], immutable=True) : place})
             place += 1
 
-    return (order_dict, in_order)
+    return order_dict
 
 def get_dim_single_skein(gamma):
     '''
@@ -285,24 +291,20 @@ def get_dim_single_skein(gamma):
     the corank of these relations is the required dimension.
     '''
     Z_2 = Integers(2) # Integers mod 2
-    order_dict, in_order = order_lexi() # A dict and list to order the basis
+    order_dict = order_lexi() # A dict and list to order the basis
 
     rels = [] # Ready to record the twisted commutator relations.
 
     # Walk thru pairs of basis elements (R, S) viewed as 1x2 Z/2 vectors (r, s)
-    for r in in_order:
-        for s in in_order:
-            first_term = r + s # First term in the commutator is RS, i.e. r + s
-            second_term = s*gamma.T + r # Second term is twisted by Gamma
-
-            # Turn these into tuples to access the order dict
-            first_term_tuple = tuple([i for i in first_term])
-            second_term_tuple = tuple([i for i in second_term])
+    for r in order_dict.keys():
+        for s in order_dict.keys():
+            first_term = vector(Z_2, r + s, immutable=True) # First term in the commutator is RS, i.e. r + s
+            second_term = vector(Z_2, s*gamma.T + r, immutable=True) # Second term is twisted by Gamma
 
             # Use the order dict to view each term of the relation as a vector
             # in a 4d vecctor space.
-            first_term_vector = vector(QQ, [1 if i == order_dict[first_term_tuple] else 0 for i in range(4)])
-            second_term_vector = vector(QQ, [1 if i == order_dict[second_term_tuple] else 0 for i in range(4)])
+            first_term_vector = vector(QQ, [1 if i == order_dict[first_term] else 0 for i in range(4)])
+            second_term_vector = vector(QQ, [1 if i == order_dict[second_term] else 0 for i in range(4)])
 
             #Get the relation, and append it if non-trivial.
             rel = first_term_vector - second_term_vector
@@ -527,7 +529,7 @@ if choice == "i":
         elif user_input[0] == "T":
             print("Estimating dimensions for the matrix gamma = T...\n")
             gamma = matrix(ZZ, 2, [1, 1, 0, 1])
-        if user_input[0] == "-I":
+        elif user_input[0] == "-I":
             print("Estimating dimensions for the matrix gamma = -I...\n")
             gamma = matrix(ZZ, 2, [-1, 0, 0, -1])
         elif user_input[0] == "-S":
