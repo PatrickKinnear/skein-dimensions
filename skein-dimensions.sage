@@ -184,7 +184,7 @@ def get_relations_empty(gamma, shell_level, order_func):
             # Check the relations are not out of range.
             if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
                 #Create vectors corresponding to the four lattice points.
-                
+
                 x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
                 x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
                 x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
@@ -323,7 +323,7 @@ def compute_corank(gamma, shell_level, interactive_flag):
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level
     if interactive_flag:
         print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
-    relations = get_relations_empty(gamma, shell_level, order_lrtb)
+    relations = get_relations_empty(gamma, shell_level, order_by_shell_level)
     if interactive_flag:
         print("Found %d (non-independent) relations. Reducing ..." % len(relations))
     # Form a relation matrix, compute its pivots; the dimension estimate is the
@@ -333,7 +333,7 @@ def compute_corank(gamma, shell_level, interactive_flag):
     dim_estimate = N - len(pivots)
     if interactive_flag:
         print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
-        print_generators(shell_level, pivots, order_lrtb)
+        print_generators(shell_level, pivots, order_by_shell_level)
 
     return dim_estimate
 
