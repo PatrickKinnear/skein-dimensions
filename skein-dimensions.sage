@@ -76,6 +76,7 @@ estimation in this figure.
 import os
 import sys
 import csv
+import random as rand
 import pandas as pd
 from sage.all import *
 
@@ -175,10 +176,10 @@ def get_relations_empty(gamma, shell_level, order_func):
             # Check the relations are not out of range.
             if x_0_tuple in ordering.keys() and x_1_tuple in ordering.keys() and x_2_tuple in ordering.keys() and x_3_tuple in ordering.keys():
                 #Create vectors corresponding to the four lattice points.
-                x_0_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_0_tuple] else 0 for i in range(N)])
-                x_1_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_1_tuple] else 0 for i in range(N)])
-                x_2_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_2_tuple] else 0 for i in range(N)])
-                x_3_vect = vector(QQ['q'].fraction_field(), [1 if i == ordering[x_3_tuple] else 0 for i in range(N)])
+                x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0_tuple] else 0 for i in range(N)], sparse=True)
+                x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1_tuple] else 0 for i in range(N)], sparse=True)
+                x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2_tuple] else 0 for i in range(N)], sparse=True)
+                x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3_tuple] else 0 for i in range(N)], sparse=True)
 
                 # Compute the coefficients in the relation.
                 Q_0 = q**(-s*t)
@@ -274,13 +275,13 @@ def get_dim_single_skein(gamma):
     part of the twisted torus, where gamma is an SL_2(Z)-matrix defining the
     twisting.
 
-    The vector space in question is a quotient of C[X, Y]/(X^2, Y^2) by
+    The vector space in question is a quotient of C[X, Y]/(X^2 - 1 , Y^2 - 1) by
     some relations. The basis {1, X, Y, XY} is represented by vectors of length
     2 with Z/2-entries, i.e. X^aY^b is [a, b], and these are ordered
     lexicographically.
 
     The implementation is similar to get_relations: for all pairs of basis
-    elements of C[X, Y]/(X^2, Y^2) we get the gamma-twisted commutators, then
+    elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators, then
     the corank of these relations is the required dimension.
     '''
     Z_2 = Integers(2) # Integers mod 2
@@ -315,6 +316,25 @@ def get_dim_single_skein(gamma):
 
     return dim
 
+def compute_corank(gamma, shell_level, interactive_flag):
+    # For each shell level, compute #{lattice points}.
+    N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+    if interactive_flag:
+        print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
+    relations = get_relations_empty(gamma, shell_level, order_lrtb)
+    if interactive_flag:
+        print("Found %d (non-independent) relations. Reducing ..." % len(relations))
+    # Form a relation matrix, compute its pivots; the dimension estimate is the
+    # co-rank.
+    A = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
+    pivots = A.pivots()
+    dim_estimate = N - len(pivots)
+    if interactive_flag:
+        print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
+        print_generators(shell_level, pivots, order_lrtb)
+
+    return dim_estimate
+
 
 def get_dim_estimates_empty(gamma, n, interactive_flag):
     '''
@@ -331,22 +351,7 @@ def get_dim_estimates_empty(gamma, n, interactive_flag):
 
     # Estimate the skein module dimension for each shell level.
     for shell_level in range(n+1):
-        # For each shell level, compute #{lattice points}.
-        N = (2*shell_level + 1)*(shell_level + 1) - shell_level
-        if interactive_flag:
-            print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
-        relations = get_relations_empty(gamma, shell_level, order_lrtb)
-        if interactive_flag:
-            print("Found %d (non-independent) relations. Reducing ..." % len(relations))
-        # Form a relation matrix, compute its pivots; the dimension estimate is the
-        # co-rank.
-        A = matrix(QQ['q'].fraction_field(), relations)
-        pivots = A.pivots()
-        dim_estimate = N - len(pivots)
-        if interactive_flag:
-            print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
-            print_generators(shell_level, pivots, order_lrtb)
-
+        dim_estimate = compute_corank(gamma, shell_level, interactive_flag)
         dimensions.append(dim_estimate)
 
     return dimensions
@@ -370,14 +375,13 @@ def compute_and_write(M, shell_levels, path):
         writer.writerow([M.trace(), M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single, dim_total] + dim_estimates)
     f.close()
 
-def generate_raw_data(path, shell_levels):
-    '''
-    Generate several SL_2(Z) matrices, compute their skein dimension estimates,
-    and write this data to a csv file.
+    return None
 
-    The matrices generated are grouped by absolute value of trace.
+def compute_write_low_trace(shell_levels, path):
     '''
-
+    Perform the computations for matrices of trace with abs val < 2, with a
+    specified max shell level, and write to the file at path.
+    '''
     #Trace 0 matrix
     S = matrix(ZZ, 2, [0, -1, 1, 0])
 
@@ -387,9 +391,57 @@ def generate_raw_data(path, shell_levels):
 
     low_trace = [S, M_0, M_1]
 
+    # Compute dimensions for the 3 matrices of low trace.
+    for M in low_trace:
+        compute_and_write(M, shell_levels, path)
+
+    return None
+
+def compute_write_from_seq(sequence, shell_levels, path):
+    '''
+    Performs the dimension computations for an SL_2(Z) matrix of form
+        R^{a_1}L^{a_2}...(R or L)^{a_k}
+    given a sequence (a_k). Computations performed up to a max shell level, and
+    written to path.
+    Here R = [[1, 1], [0, 1]], L = [[1, 0], [1, 1]] so that R^n is
+    [[1, n], [0, 1]] and this is how we implement the exponentiation (similar
+    for L).
+    '''
     #Generators for |trace| >= 2 matrices
     R = matrix(ZZ, 2, [1, 1, 0, 1])
     L = matrix(ZZ, 2, [1, 0, 1, 1])
+
+    M = matrix(ZZ, 2, [1, 0, 0, 1])
+    # Build up the word indexed by this sequence
+    for i in range(len(sequence)):
+        if i % 2 == 0:
+            #Multiply by R^a
+            M = M*matrix(ZZ, 2, [1, sequence[i], 0, 1])
+        else:
+            #Multiply by L^a
+            M = M*matrix(ZZ, 2, [1, 0, sequence[i], 1])
+
+    compute_and_write(M, shell_levels, path)
+    return None
+
+def seq_has_been_checked(seq, cache):
+    '''
+    Checks is the given sequence, or any rotation thereof, is in the cache of
+    already-checked sequences.
+    '''
+    for i in range(len(seq)):
+        seq = seq[1:] + seq[:1] # Rotate the sequence once.
+        if seq in cache: # Check cache membership.
+            return True
+    return False
+
+def generate_raw_data(path, shell_levels):
+    '''
+    Generate several SL_2(Z) matrices, compute their skein dimension estimates,
+    and write this data to a csv file.
+
+    The matrices generated are grouped by absolute value of trace.
+    '''
 
     # Open a file for the raw data, and write a header.
     with open(path, "w", newline="") as f:
@@ -397,20 +449,27 @@ def generate_raw_data(path, shell_levels):
         writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "total_dim"] + ["shell_{n}".format(n=i) for i in range(shell_levels + 1)])
     f.close()
 
-    # Compute dimensions for the 3 matrices of low trace.
-    for M in low_trace:
-        compute_and_write(M, shell_levels, path)
+    # Dimensions for low trace matrices.
+    #compute_write_low_trace(shell_levels, path)
 
     # Dimensions for the family of shears.
-    for n in range(6):
-        M = R**n
-        compute_and_write(M, shell_levels, path)
+    #for n in range(6):
+    #    compute_write_from_seq([n], shell_levels, path)
 
     # Dimensions for words of length 2 in SL_2(Z)
-    for m in range(1, 6):
-        for n in range(6):
-            M = (R**n)*(L**m)
-            compute_and_write(M, shell_levels, path)
+    #for m in range(1, 6):
+    #    for n in range(6):
+    #        compute_write_from_seq([m, n], shell_levels, path)
+
+    # Words of longer length, randomly generated
+    cache = []
+    for l in range(3, 11):
+        for attempt in range(5):
+            sequence = [rand.randint(0, 10) for i in range(l)]
+            print(sequence)
+            #Exclude previously checked sequences.
+            if not seq_has_been_checked(sequence, cache):
+                compute_write_from_seq(sequence, shell_levels, path)
 
 def write_dim_table(rawpath, outpath, shell_levels):
     '''
@@ -541,7 +600,6 @@ elif choice == "gw":
             outpath = sys.argv[3]
             if len(sys.argv) >= 5:
                 shell_levels = int(sys.argv[4])
-
     generate_raw_data(rawpath, shell_levels)
     write_dim_table(rawpath, outpath, shell_levels)
 
