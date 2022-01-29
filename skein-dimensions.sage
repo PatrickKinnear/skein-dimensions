@@ -1,7 +1,6 @@
 #!/usr/bin/env sage
 
 '''
-This is Alisa
 USAGE Ensure SAGE_ROOT is stored in your PATH, and run
 
 ./skein-dimensions.sage mode [rawpath [outpath]] [shell-level]
@@ -131,7 +130,7 @@ def order_by_shell_level(shell_level):
 
     return order_dict
 
-def get_new_relations_empty(gamma, shell_level, order_func):
+def get_relations_empty(gamma, shell_level, order_func):
     '''
     Returns a list of linear relations between lattice points for a specified
     shell level.
@@ -184,26 +183,25 @@ def get_new_relations_empty(gamma, shell_level, order_func):
 
             # Check the relations are not out of range.
             if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
-                if x is
+                #Create vectors corresponding to the four lattice points.
 
-                    #Create vectors corresponding to the four lattice points.
-                    x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
-                    x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
-                    x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
-                    x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
+                x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
+                x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
+                x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
-                    # Compute the coefficients in the relation.
-                    Q_0 = q**(-s*t)
-                    Q_1 = q**(s*t)
-                    Q_2 = -q**(K - r*(c*t + d*u))
-                    Q_3 = -q**(K + r*(c*t + d*u))
+                # Compute the coefficients in the relation.
+                Q_0 = q**(-s*t)
+                Q_1 = q**(s*t)
+                Q_2 = -q**(K - r*(c*t + d*u))
+                Q_3 = -q**(K + r*(c*t + d*u))
 
-                    #The relation is the following:
-                    rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
+                #The relation is the following:
+                rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
 
-                    # Check the relation is not trivial, then append.
-                    if not rel.is_zero():
-                        relations.append(rel)
+                # Check the relation is not trivial, then append.
+                if not rel.is_zero():
+                    relations.append(rel)
 
     return relations
 
@@ -320,34 +318,24 @@ def get_dim_single_skein(gamma):
 
     return dim
 
-def compute_reduced_matrix(gamma, shell_level, interactive_flag):
-    if shell_level == 0:
-        return (matrix(QQ,[]), [1])
-    else:
-        # For each shell level, compute #{lattice points}.
-        N = (2*shell_level + 1)*(shell_level + 1) - shell_level
-        if interactive_flag:
-            print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
-        relations = get_new_relations_empty(gamma, shell_level, order_by_shell_level)
-        if interactive_flag:
-            print("Found %d (non-independent) relations. Reducing ..." % len(relations))
-        # Form a relation matrix, compute its pivots; the dimension estimate is the
-        # co-rank.
-        prev_data = compute_reduced_matrix(gamma, shell_level - 1, interactive_flag)
-        A_old = prev_data[0]
-        dimensions = prev_data[1]
-        # A = [[    A  0 ]
-        #      [relations]]
-        # A = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
-        A_reduced = A.rref()
-        pivots = A_reduced.pivots()
-        dim_estimate = N - A.rank()
-        dimensions.append(dim_estimate)
-        if interactive_flag:
-            print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
-            print_generators(shell_level, pivots, order_by_shell_level)
+def compute_corank(gamma, shell_level, interactive_flag):
+    # For each shell level, compute #{lattice points}.
+    N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+    if interactive_flag:
+        print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
+    relations = get_relations_empty(gamma, shell_level, order_by_shell_level)
+    if interactive_flag:
+        print("Found %d (non-independent) relations. Reducing ..." % len(relations))
+    # Form a relation matrix, compute its pivots; the dimension estimate is the
+    # co-rank.
+    A = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
+    pivots = A.pivots()
+    dim_estimate = N - len(pivots)
+    if interactive_flag:
+        print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
+        print_generators(shell_level, pivots, order_by_shell_level)
 
-        return (A_reduced, dimensions)
+    return dim_estimate
 
 
 def get_dim_estimates_empty(gamma, n, interactive_flag):
@@ -361,7 +349,12 @@ def get_dim_estimates_empty(gamma, n, interactive_flag):
     # Declare an indeterminate q.
     q = var('q')
 
-    dimensions = compute_reduced_matrix(gamma, n, interactive_flag)[1]
+    dimensions = [] #
+
+    # Estimate the skein module dimension for each shell level.
+    for shell_level in range(n+1):
+        dim_estimate = compute_corank(gamma, shell_level, interactive_flag)
+        dimensions.append(dim_estimate)
 
     return dimensions
 
