@@ -156,6 +156,7 @@ def get_new_relations_empty(gamma, shell_level, order_func):
     relations = []
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level # Total lattice pts.
     ordering = order_func(shell_level) # Dict and list of order
+    M = (2*shell_level - 1)*(shell_level) - shell_level + 1 # First elements from the previous shell level
 
     #Unpack the matrix gamma.
     a = gamma[0, 0]
@@ -184,7 +185,7 @@ def get_new_relations_empty(gamma, shell_level, order_func):
 
             # Check the relations are not out of range.
             if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
-                if x is
+                if not (x_0  in order_dict.keys()[:M] and x_1 in order_dict.keys()[:M] and x_2 in order_dict.keys()[:M] and x_3 in order_dict.keys()[:M]):
 
                     #Create vectors corresponding to the four lattice points.
                     x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
