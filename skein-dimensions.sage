@@ -330,7 +330,7 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag):
             print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
         relations = get_new_relations_empty(gamma, shell_level, order_by_shell_level)
         if interactive_flag:
-            print("Found %d (non-independent) relations. Reducing ..." % len(relations))
+            print("Found %d (non-independent) relations.\n" % len(relations))
         # Form a relation matrix, compute its pivots; the dimension estimate is the
         # co-rank.
         A_lower = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
