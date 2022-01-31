@@ -185,7 +185,7 @@ def get_new_relations_empty(gamma, shell_level, order_func):
 
             # Check the relations are not out of range.
             if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
-                if not (x_0  in order_dict.keys()[:M] and x_1 in order_dict.keys()[:M] and x_2 in order_dict.keys()[:M] and x_3 in order_dict.keys()[:M]):
+                if not (x_0  in ordering.keys()[:M] and x_1 in ordering.keys()[:M] and x_2 in ordering.keys()[:M] and x_3 in ordering.keys()[:M]):
 
                     #Create vectors corresponding to the four lattice points.
                     x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
