@@ -323,10 +323,11 @@ def get_dim_single_skein(gamma):
 
 def compute_reduced_matrix(gamma, shell_level, interactive_flag):
     if shell_level == 0:
-        return (matrix(QQ,[]), [1])
+        return (matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)),[]), [1])
     else:
         # For each shell level, compute #{lattice points}.
         N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+        M = (2*shell_level - 1)*(shell_level) - shell_level + 1
         if interactive_flag:
             print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
         relations = get_new_relations_empty(gamma, shell_level, order_by_shell_level)
@@ -337,9 +338,10 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag):
         prev_data = compute_reduced_matrix(gamma, shell_level - 1, interactive_flag)
         A_old = prev_data[0]
         dimensions = prev_data[1]
-        # A = [[    A  0 ]
-        #      [relations]]
-        # A = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
+        Zeros_right = zero_matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), N - M)
+        A_upper = block_matrix([[A_old, Zeros_right]])
+        A_lower = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
+        A = block_matrix([A_upper, A_lower])
         A_reduced = A.rref()
         pivots = A_reduced.pivots()
         dim_estimate = N - A.rank()
