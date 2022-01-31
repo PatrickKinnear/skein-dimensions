@@ -361,12 +361,10 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag):
         Zeros_right = zero_matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), A_old.nrows(), N - M, sparse=True)
         A_upper = block_matrix([[A_old, Zeros_right]])
         A_lower = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
-        print(A_upper)
-        print(A_lower)
         A = block_matrix([[A_upper], [A_lower]])
         A_reduced = A.rref()
         pivots = A_reduced.pivots()
-        dim_estimate = N - A.rank()
+        dim_estimate = N - len(pivots)
         dimensions.append(dim_estimate)
         if interactive_flag:
             print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
