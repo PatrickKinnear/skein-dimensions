@@ -130,7 +130,7 @@ def order_by_shell_level(shell_level):
 
     return order_dict
 
-def get_relations_empty(gamma, shell_level, order_func):
+def get_new_relations_empty(gamma, shell_level, order_func):
     '''
     Returns a list of linear relations between lattice points for a specified
     shell level.
@@ -149,7 +149,7 @@ def get_relations_empty(gamma, shell_level, order_func):
 
     Performs a double loop through the lattice, obtains the relation between
     four points for each pair of points, and discards trivial or out-of-range
-    relations.
+    relations, or relations which lie in the previous shell level.
     '''
 
     relations = []
@@ -187,24 +187,23 @@ def get_relations_empty(gamma, shell_level, order_func):
             if x_0 in ordering and x_1 in ordering and x_2 in ordering and x_3 in ordering:
                 if not (x_0  in list(ordering.keys())[:M] and x_1 in list(ordering.keys())[:M] and x_2 in list(ordering.keys())[:M] and x_3 in list(ordering.keys())[:M]):
 
+                    x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
+                    x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                    x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
+                    x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
-                x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
-                x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
-                x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
-                x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
+                    # Compute the coefficients in the relation.
+                    Q_0 = q**(-s*t)
+                    Q_1 = q**(s*t)
+                    Q_2 = -q**(K - r*(c*t + d*u))
+                    Q_3 = -q**(K + r*(c*t + d*u))
 
-                # Compute the coefficients in the relation.
-                Q_0 = q**(-s*t)
-                Q_1 = q**(s*t)
-                Q_2 = -q**(K - r*(c*t + d*u))
-                Q_3 = -q**(K + r*(c*t + d*u))
+                    #The relation is the following:
+                    rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
 
-                #The relation is the following:
-                rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
-
-                # Check the relation is not trivial, then append.
-                if not rel.is_zero():
-                    relations.append(rel)
+                    # Check the relation is not trivial, then append.
+                    if not rel.is_zero():
+                        relations.append(rel)
 
     return relations
 
@@ -451,12 +450,8 @@ def get_dim_estimates_empty(gamma, n, interactive_flag):
     # Declare an indeterminate q.
     q = var('q')
 
-    dimensions = [] #
-
     # Estimate the skein module dimension for each shell level.
-    for shell_level in range(n+1):
-        dim_estimate = compute_corank(gamma, shell_level, interactive_flag)
-        dimensions.append(dim_estimate)
+    dimensions = compute_reduced_matrix(gamma, n, interactive_flag)[1]
 
     return dimensions
 
