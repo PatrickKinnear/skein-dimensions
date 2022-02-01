@@ -155,6 +155,7 @@ def get_relations_empty(gamma, shell_level, order_func):
     relations = []
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level # Total lattice pts.
     ordering = order_func(shell_level) # Dict and list of order
+    M = (2*shell_level - 1)*(shell_level) - shell_level + 1 # First elements from the previous shell level
 
     #Unpack the matrix gamma.
     a = gamma[0, 0]
@@ -182,8 +183,10 @@ def get_relations_empty(gamma, shell_level, order_func):
             x_3 = vector(ZZ, p_0 - p_1*gamma.T, immutable=True)
 
             # Check the relations are not out of range.
-            if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
-                #Create vectors corresponding to the four lattice points.
+
+            if x_0 in ordering and x_1 in ordering and x_2 in ordering and x_3 in ordering:
+                if not (x_0  in list(ordering.keys())[:M] and x_1 in list(ordering.keys())[:M] and x_2 in list(ordering.keys())[:M] and x_3 in list(ordering.keys())[:M]):
+
 
                 x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
                 x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
@@ -205,15 +208,14 @@ def get_relations_empty(gamma, shell_level, order_func):
 
     return relations
 
-def print_generators(shell_level, pivots, order_func):
+def print_generators(shell_level, spanning_set, order_func):
     '''
     Prints a visualisation of the spanning lattice points to the command line.
     A spanning vector is denoted x in the lattice, other points are denoted .
     and axes are drawn using | and -. The visualisation is printed to the
     terminal (provided the terminal is large enough).
-    Takes the shell level, a tuple giving the indices of the pivots of the
-    relation matrix (these are the complement of the spanning set), and the
-    order_func to map lattice points to indices for comparison.
+    Takes the shell level, a tuple giving the indices of the spanning set, and
+    the order_func to map lattice points to indices for comparison.
     '''
     max_width = os.get_terminal_size().columns #Check terminal is wide enough
     if 2*(2*shell_level + 1) > max_width:
@@ -226,7 +228,7 @@ def print_generators(shell_level, pivots, order_func):
                 # If a point is in the shell, check if it is NOT a pivot of the
                 # relation matrix.
                 if vector(ZZ, [x, y], immutable=True) in ordering.keys():
-                    if not ordering[vector(ZZ, [x, y], immutable=True)] in pivots:
+                    if ordering[vector(ZZ, [x, y], immutable=True)] in spanning_set:
                         print("x ", end="") #Place an x for spanning vectors.
                     elif x == 0 and y == 0:
                         print("+ ", end="") #Origin.
@@ -318,24 +320,124 @@ def get_dim_single_skein(gamma):
 
     return dim
 
-def compute_corank(gamma, shell_level, interactive_flag):
-    # For each shell level, compute #{lattice points}.
-    N = (2*shell_level + 1)*(shell_level + 1) - shell_level
-    if interactive_flag:
-        print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
-    relations = get_relations_empty(gamma, shell_level, order_by_shell_level)
-    if interactive_flag:
-        print("Found %d (non-independent) relations. Reducing ..." % len(relations))
-    # Form a relation matrix, compute its pivots; the dimension estimate is the
-    # co-rank.
-    A = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
-    pivots = A.pivots()
-    dim_estimate = N - len(pivots)
-    if interactive_flag:
-        print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
-        print_generators(shell_level, pivots, order_by_shell_level)
 
-    return dim_estimate
+def compute_reduced_matrix(gamma, shell_level, interactive_flag):
+    '''
+    Computes the reduced matrix of relations at a given shell level, as well as
+    its co-rank, which is an estimate of the dimension of the empty part of the
+    skein module
+
+    Returns a tuple (A, dim_estimates), where A is the matrix and dim_estimates
+    is the list of estimated dimensions for shell levels <= to the shell level
+    parameter.
+
+    Works recursively: the relation matrix for level n is built up as
+
+                [[  X  | 0 ]
+                 [---------]
+                 [relations]]
+
+    where X is the matrix of relations for level n-1, in REF, obtained from a
+    recursive call to the function, and the list relations is a list of
+    relations at level n that were not already included at level n-1.
+    '''
+
+    # Base case: level 1.
+    if shell_level == 1:
+        # For each shell level, compute #{lattice points}.
+        N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+        # And the number of points in previous level.
+        M = (2*shell_level - 1)*(shell_level) - shell_level + 1
+        if interactive_flag:
+            print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
+
+        # Get the relations new to this shell level.
+        relations = get_new_relations_empty(gamma, shell_level, order_by_shell_level)
+        if interactive_flag:
+            print("Found %d (non-independent) relations.\n" % len(relations))
+        # Form a relation matrix, and reduce it.
+        A = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
+        A_reduced = A.rref()
+
+        # Get the spanning set
+        ordering = order_by_shell_level(shell_level)
+        spanning_set = get_spanning_set(A_reduced, ordering, shell_level)
+
+        # Base of the recursion: return the reduced matrix and spanning set.
+        dim_estimate = len(spanning_set)
+        if interactive_flag:
+            print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
+            print_generators(shell_level, spanning_set, order_by_shell_level)
+
+        return (A_reduced, [dim_estimate])
+
+    else:
+        # For each shell level, compute #{lattice points}.
+        N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+        # And the number of points in previous level.
+        M = (2*shell_level - 1)*(shell_level) - shell_level + 1
+        if interactive_flag:
+            print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
+
+        # Get the relations new to this shell level.
+        relations = get_new_relations_empty(gamma, shell_level, order_by_shell_level)
+        if interactive_flag:
+            print("Found %d (non-independent) relations. Reducing ..." % len(relations))
+        # Get the relation matrix for the previous shell level, recursively.
+        prev_data = compute_reduced_matrix(gamma, shell_level - 1, interactive_flag)
+        A_old = prev_data[0]
+        dimensions = prev_data[1]
+
+        # Use the new relations and old, reduced matrix to build the relations
+        # matrix for this shell level, and reduce.
+        Zeros_right = zero_matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), A_old.nrows(), N - M, sparse=True)
+        A_upper = block_matrix([[A_old, Zeros_right]])
+        A_lower = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
+        A = block_matrix([[A_upper], [A_lower]])
+        A_reduced = A.rref()
+
+        # Get the spanning set
+        ordering = order_by_shell_level(shell_level)
+        spanning_set = get_spanning_set(A_reduced, ordering, shell_level)
+
+        # Add the dimension estimate to the list, print output, and return
+        dim_estimate = len(spanning_set)
+        dimensions.append(dim_estimate)
+        if interactive_flag:
+            print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
+            print_generators(shell_level, spanning_set, order_by_shell_level)
+
+        return (A_reduced, dimensions)
+
+
+def get_spanning_set(A, ordering, shell_level):
+    '''
+    Given a relation matrix A, the ordering, and the shell level, returns a list
+    of the indices of spanning vectors for the approximation of the empty skein
+    part at this shell level.
+
+    For each lattice vector in the ordering, checks if it is in the span of the
+    matrix B given by the relations A and the previous vectors in the ordering.
+    This is checked by augmenting B with the corresponding length N basis
+    vector and comparing with the rank of B. If the lattice point corresponds to
+    a vector not in the span of B, its position in the ordering is added to the
+    list of spanning vectors.
+    '''
+    N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+    spanning_set = []
+
+    # Iterate through the lattice.
+    for lattice_pt in ordering.keys():
+        #Corresponding length N vector.
+        basis_elt = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[lattice_pt] else 0 for i in range(N)], sparse=True)
+        A = A.rref() # Reduce A at each step.
+        rk_A = A.rank() # Store the rank of A
+        A = block_matrix([[A], [matrix(basis_elt)]]) # Augment A with the new vector.
+        # If not in this span, add the position of the lattice point to the list
+        # of indices of spanning vectors (used to print generators).
+        if A.rank() > rk_A:
+            spanning_set.append(ordering[lattice_pt])
+    return spanning_set
 
 
 def get_dim_estimates_empty(gamma, n, interactive_flag):
