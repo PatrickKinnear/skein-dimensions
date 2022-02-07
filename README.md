@@ -26,6 +26,8 @@ Sage shell and running
 
 pip install pandas
 
+*Requirements* Sage v9.2 or higher; Python v3.7 or higher.
+
 *Interactive Mode*
 You will be prompted for an SL_2(Z)-matrix and an integer n, where n gives the
 number of levels to search through in a triangular shell (see description), to
