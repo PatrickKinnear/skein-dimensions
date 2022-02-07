@@ -77,7 +77,6 @@ import os
 import sys
 import csv
 import random as rand
-import pandas as pd
 import itertools
 from sage.all import *
 
@@ -670,6 +669,7 @@ elif choice == "g":
 
 # Presentation mode:
 elif choice == "w":
+    import pandas as pd
     rawpath = "skein-dims-rawdata.csv"
     outpath = "skein-dims-printed.txt"
     shell_levels = 6
@@ -684,6 +684,7 @@ elif choice == "w":
 
 # Generate-write mode:
 elif choice == "gw":
+    import pandas as pd
     rawpath = "skein-dims-rawdata.csv"
     outpath = "skein-dims-printed.txt"
     shell_levels = 6
