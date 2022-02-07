@@ -78,6 +78,7 @@ import sys
 import csv
 import random as rand
 import pandas as pd
+import itertools
 from sage.all import *
 
 def order_by_shell_level(shell_level):
@@ -455,7 +456,7 @@ def get_dim_estimates_empty(gamma, n, interactive_flag):
 
     return dimensions
 
-def compute_and_write(M, shell_levels, path):
+def compute_and_write(sequence, M, shell_levels, path):
     '''
     A helper function for generate_raw_data, handles the subroutine of
     collating the results of dimension computations for M (up to shell_levels
@@ -471,7 +472,7 @@ def compute_and_write(M, shell_levels, path):
     # Write the relevant data to the output file.
     with open(path, "a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([M.trace(), M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single, dim_total] + dim_estimates)
+        writer.writerow([M.trace(), M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single, dim_total] + dim_estimates + list(sequence))
     f.close()
 
     return None
@@ -520,7 +521,7 @@ def compute_write_from_seq(sequence, shell_levels, path):
             #Multiply by L^a
             M = M*matrix(ZZ, 2, [1, 0, sequence[i], 1])
 
-    compute_and_write(M, shell_levels, path)
+    compute_and_write(sequence, M, shell_levels, path)
     return None
 
 def seq_has_been_checked(seq, cache):
@@ -542,33 +543,26 @@ def generate_raw_data(path, shell_levels):
     The matrices generated are grouped by absolute value of trace.
     '''
 
+    max_seq_len = 5
+
     # Open a file for the raw data, and write a header.
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "total_dim"] + ["shell_{n}".format(n=i) for i in range(shell_levels + 1)])
+        writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "total_dim"] + ["shell_{n}".format(n=i) for i in range(shell_levels + 1)] + ["seq_{n}".format(n=i) for i in range(max_seq_len)])
     f.close()
 
     # Dimensions for low trace matrices.
     #compute_write_low_trace(shell_levels, path)
 
-    # Dimensions for the family of shears.
-    #for n in range(6):
-    #    compute_write_from_seq([n], shell_levels, path)
-
-    # Dimensions for words of length 2 in SL_2(Z)
-    #for m in range(1, 6):
-    #    for n in range(6):
-    #        compute_write_from_seq([m, n], shell_levels, path)
-
-    # Words of longer length, randomly generated
-    cache = []
-    for l in range(3, 11):
-        for attempt in range(5):
-            sequence = [rand.randint(0, 10) for i in range(l)]
-            print(sequence)
-            #Exclude previously checked sequences.
-            if not seq_has_been_checked(sequence, cache):
-                compute_write_from_seq(sequence, shell_levels, path)
+    # Dimensions for matrices of |trace| >=  2
+    cache = [] # Previously checked sequences.
+    # The space of sequences to search.
+    sequences = itertools.product(range(11), repeat=max_seq_len)
+    for sequence in sequences:
+        #Exclude previously checked sequences up to cyclic permutation.
+        if not seq_has_been_checked(sequence, cache):
+            compute_write_from_seq(sequence, shell_levels, path)
+            cache.append(sequence)
 
 def write_dim_table(rawpath, outpath, shell_levels):
     '''
