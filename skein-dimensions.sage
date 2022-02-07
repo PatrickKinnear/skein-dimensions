@@ -12,6 +12,8 @@ where mode is a string specifying the mode, one of:
 (w) write
 (gw) generate-and-write
 
+*Requirements* Sage v9.2 or higher; Python v3.7 or higher.
+
 *Note* that w and gw modes require pandas. This can be installed by opening a
 Sage shell and running
 
