@@ -40,7 +40,7 @@ The program will generate matrices in SL_2(Z), grouped by trace, and compute the
 dimension estimate of the skein module of the twisted torus defined by this
 matrix. The data is written in raw form to a csv file in the working directory.
 The output filepath may be specified at the command line. Default is
-skein-dims-rawdata.csv. Can also specify shell level (defaults to 6).
+skein-dims-rawdata.csv. Can also specify shell level (defaults to 11).
 
 *Write Mode*
 The program will produce a table giving some SL_2(Z) matrices, the dimension of
@@ -95,6 +95,8 @@ if len(sys.argv) < 2:
 
 choice = sys.argv[1]
 
+shell_levels = 11
+
 # Interactive mode
 if choice == "i":
     print("TWISTED TORUS SKEIN DIMENSION ESTIMATOR")
@@ -147,12 +149,11 @@ if choice == "i":
     n = int(input("Enter the number of shell levels to estimate dimension of empty skein part: "))
 
     # Get the dimension estimates, pass True interactive_flag to be verbose.
-    get_dim_estimates_empty(gamma, n, True)
+    compute_reduced_matrix(gamma, n, True)
 
 # Generation mode
 elif choice == "g":
     path = "skein-dims-rawdata.csv"
-    shell_levels = 6
     if len(sys.argv) >= 3:
         path = sys.argv[2]
         if len(sys.argv) >= 4:
@@ -165,7 +166,6 @@ elif choice == "w":
     import pandas as pd
     rawpath = "skein-dims-rawdata.csv"
     outpath = "skein-dims-printed.txt"
-    shell_levels = 6
     if len(sys.argv) >= 3:
         rawpath = sys.argv[2]
         if len(sys.argv) >= 4:
@@ -180,7 +180,6 @@ elif choice == "gw":
     import pandas as pd
     rawpath = "skein-dims-rawdata.csv"
     outpath = "skein-dims-printed.txt"
-    shell_levels = 6
     if len(sys.argv) >= 3:
         rawpath = sys.argv[2]
         if len(sys.argv) >= 4:
