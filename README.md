@@ -10,9 +10,18 @@ Written by Patrick Kinnear and Alisa Sheinkman.
 
 ## Usage
 
-Ensure SAGE_ROOT is stored in your PATH, and run
+Most of the functionality is implemented in the library `skeinslib.sage`. This can
+be loaded in the sage shell by running
 
-./skein-dimensions.sage mode [rawpath [outpath]] [shell-level]
+`load("skeinslib.sage")`
+
+and the code can be used interactively.
+
+There is a script `skein-dimensions.sage` which can be used to generate data
+or to manually input a single matrix. Ensure `SAGE_ROOT` is stored in your
+`PATH`, and run
+
+`./skein-dimensions.sage mode [rawpath [outpath]] [shell-level]`
 
 where mode is a string specifying the mode, one of:
 
@@ -24,7 +33,13 @@ where mode is a string specifying the mode, one of:
 *Note* that w and gw modes require pandas. This can be installed by opening a
 Sage shell and running
 
-pip install pandas
+`pip install pandas`
+
+or by running
+
+`sage -pip install pandas`
+
+at the command line.
 
 *Requirements* Sage v9.2 or higher; Python v3.7 or higher.
 
@@ -40,7 +55,7 @@ The program will generate matrices in SL_2(Z), grouped by trace, and compute the
 dimension estimate of the skein module of the twisted torus defined by this
 matrix. The data is written in raw form to a csv file in the working directory.
 The output filepath may be specified at the command line. Default is
-skein-dims-rawdata.csv. Can also specify shell level (defaults to 6).
+`skein-dims-rawdata.csv`. Can also specify shell level (defaults to 6).
 
 *Write Mode*
 The program will produce a table giving some SL_2(Z) matrices, the dimension of
@@ -49,8 +64,8 @@ matrix, and an estimate of the dimension of the empty skein part. The raw data
 for the table is the output of a run of generation mode, so the program must be
 run once in g mode before w mode is used. The path for the raw data file and the
 formatted output file may be specified at the command line. Defaults are
-skein-dims-rawdata.csv and skein-dims-printed.txt respectively. Can also specify
-shell level (defaults to 6).
+`skein-dims-rawdata.csv` and `skein-dims-printed.txt` respectively. Can also
+specify shell level (defaults to 6).
 
 *Generate-Write Mode*
 The result of running generation mode followed immediately by write mode.
