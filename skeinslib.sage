@@ -507,7 +507,7 @@ def seq_has_been_checked(seq, cache):
             return True
     return False
 
-def generate_raw_data(path, shell_levels, append=False, cache_path="seq_cache.csv"):
+def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.csv"):
     '''
     Generate several SL_2(Z) matrices, compute their skein dimension estimates,
     and write this data to a csv file.
