@@ -517,14 +517,13 @@ def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.cs
     output file.
     '''
 
-    max_seq_len = 5
+    half_max_seq_len = 2
 
     if not append:
         # Open a file for the raw data, and write a header.
         with open(path, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "total_dim"] + ["shell_{n}".format(n=i) for i in range(shell_levels)] + ["seq_{n}".format(n=i) for i in range(max_seq_len)])
-        f.close()
+            writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "total_dim"] + ["shell_{n}".format(n=i) for i in range(shell_levels)] + ["seq_{n}".format(n=i) for i in range(2*half_max_seq_len)])
         # Reset the cache
         if os.path.exists(cache_path):
             os.remove(cache_path)
@@ -532,7 +531,11 @@ def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.cs
     # Dimensions for low trace matrices.
     #compute_write_low_trace(shell_levels, path, cache_path)
 
-    # Dimensions for matrices of |trace| >=  2
+    # Dimensions for the family of shears (|trace = 2|).
+    #for n in range(11):
+    #    compute_write_from_seq([n], shell_levels, path, cache_path)
+
+    # Dimensions for matrices of |trace| >  2
 
     cache = []  # Previously checked sequences.
     if append:
@@ -542,12 +545,14 @@ def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.cs
                 cache = [tuple([int(s) for s in seq]) for seq in cache_reader]
 
     # The space of sequences to search.
-    sequences = itertools.product(range(11), repeat=max_seq_len)
-    for sequence in sequences:
-        #Exclude previously checked sequences up to cyclic permutation.
-        if not seq_has_been_checked(sequence, cache):
-            compute_write_from_seq(sequence, shell_levels, path, cache_path)
-            cache.append(sequence)
+    for half_seq_len in range(1, half_max_seq_len):
+        seq_len = 2*half_seq_len # Sequence lengths must be even.
+        sequences = itertools.product(range(1, 11), repeat=seq_len)
+        for sequence in sequences:
+            #Exclude previously checked sequences up to cyclic permutation.
+            if not seq_has_been_checked(sequence, cache):
+                compute_write_from_seq(sequence, shell_levels, path, cache_path)
+                cache.append(sequence)
 
     return None
 
