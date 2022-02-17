@@ -49,6 +49,9 @@ import csv
 import itertools
 from sage.all import *
 
+var('q')
+K = FractionField(PolynomialRing(QQ, 'q', sparse=True))
+
 def order_by_shell_level(shell_level):
     '''
     Returns a dictionary giving an order to the lattice points in a triangular
@@ -98,6 +101,77 @@ def order_by_shell_level(shell_level):
             b -= 1
 
     return order_dict
+
+def get_relations_empty(gamma, shell_level, order_func):
+    '''
+    Returns a list of linear relations between lattice points for a specified
+    shell level.
+    Each ordered pair of lattice points determines a relation between four other
+    lattice points, where lattice points correspond to generators of the empty
+    part of the skein module.
+    Requires integer shell_level, and function order_func : int -> (dict, list)
+    which should produce: a dictionary with keys being lattice points in a
+    certain shell level, and values being their position in some sequential
+    ordering specified by the function (this is required to map lattice points
+    to indices of vectors in the space they span); and a list of lattice points
+    in this order (required to produce the four related lattice points using
+    basic linalg).
+    Performs a double loop through the lattice, obtains the relation between
+    four points for each pair of points, and discards trivial or out-of-range
+    relations.
+    '''
+
+    relations = {}
+    N = (2*shell_level + 1)*(shell_level + 1) - shell_level # Total lattice pts.
+    ordering = order_func(shell_level) # Dict and list of order
+
+    #Unpack the matrix gamma.
+    a = gamma[0, 0]
+    b = gamma[0, 1]
+    c = gamma[1, 0]
+    d = gamma[1, 1]
+
+    q = var('q') # Must be defined here to alllow compiled sage.
+
+    for p_0 in ordering.keys():
+        for p_1 in ordering.keys():
+            #Unpack the points
+            r = p_0[0]
+            s = p_0[1]
+            t = p_1[0]
+            u = p_1[1]
+
+            #A constant appearing in our coefficients, we compute it in advance
+            K = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
+
+            # The linear relation is between the four lattice points below:
+            x_0 = vector(ZZ, p_0 + p_1, immutable=True)
+            x_1 = vector(ZZ, p_0 - p_1, immutable=True)
+            x_2 = vector(ZZ, p_0 + p_1*gamma.T, immutable=True)
+            x_3 = vector(ZZ, p_0 - p_1*gamma.T, immutable=True)
+
+            # Check the relations are not out of range.
+            if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
+                #Create vectors corresponding to the four lattice points.
+                x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
+                x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
+                x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
+
+                # Compute the coefficients in the relation.
+                Q_0 = q**(-s*t)
+                Q_1 = q**(s*t)
+                Q_2 = -q**(K - r*(c*t + d*u))
+                Q_3 = -q**(K + r*(c*t + d*u))
+
+                #The relation is the following:
+                rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
+
+                # Check the relation is not trivial, then append.
+                if not rel.is_zero():
+                    relations[(p_0, p_1)] = rel
+
+    return relations
 
 def get_new_relations_empty(gamma, shell_level, order_func):
     '''
@@ -545,7 +619,7 @@ def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.cs
                 cache = [tuple([int(s) for s in seq]) for seq in cache_reader]
 
     # The space of sequences to search.
-    for half_seq_len in range(1, half_max_seq_len):
+    for half_seq_len in range(1, half_max_seq_len + 1):
         seq_len = 2*half_seq_len # Sequence lengths must be even.
         sequences = itertools.product(range(1, 11), repeat=seq_len)
         for sequence in sequences:
