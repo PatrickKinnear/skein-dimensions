@@ -363,15 +363,15 @@ def get_dim_single_skein(gamma):
     return dim
 
 
-def compute_reduced_matrix(gamma, shell_level, interactive_flag):
+def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1, base_data=None):
     '''
     Computes the reduced matrix of relations at a given shell level, as well as
     its co-rank, which is an estimate of the dimension of the empty part of the
     skein module
 
-    Returns a tuple (A, dim_estimates), where A is the matrix and dim_estimates
-    is the list of estimated dimensions for shell levels <= to the shell level
-    parameter.
+    Returns a tuple (A, A_reduced, dim_estimates), where A is the matrix and
+    dim_estimates is the list of estimated dimensions for shell levels <= to the
+    shell level parameter.
 
     Works recursively: the relation matrix for level n is built up as
 
@@ -382,36 +382,48 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag):
     where X is the matrix of relations for level n-1, in REF, obtained from a
     recursive call to the function, and the list relations is a list of
     relations at level n that were not already included at level n-1.
+
+    Supports recursion to a specified base_level, with base_data the results of
+    a previous call to the function (that is, a tuple of length 3). Usually this
+    would be loaded as a sage object saved from a previous session. If the
+    recursion base is unspecified then the default is recurse to shell_level 1
+    and compute this data from scratch.  
     '''
 
-    # Base case: level 1.
-    if shell_level == 1:
-        # For each shell level, compute #{lattice points}.
-        N = (2*shell_level + 1)*(shell_level + 1) - shell_level
-        # And the number of points in previous level.
-        M = (2*shell_level - 1)*(shell_level) - shell_level + 1
-        if interactive_flag:
-            print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
+    # Base case.
+    if shell_level == base_level:
+        if base_level == 1: # Recursing all the way to level 1
+            # For each shell level, compute #{lattice points}.
+            N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+            # And the number of points in previous level.
+            M = (2*shell_level - 1)*(shell_level) - shell_level + 1
+            if interactive_flag:
+                print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
 
-        # Get the relations new to this shell level.
-        relations = get_new_relations_empty(gamma, shell_level, order_by_shell_level)
-        if interactive_flag:
-            print("Found %d (non-independent) relations.\n" % len(relations))
-        # Form a relation matrix, and reduce it.
-        A = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
-        A_reduced = A.rref()
+            # Get the relations new to this shell level.
+            relations = get_new_relations_empty(gamma, shell_level, order_by_shell_level)
+            if interactive_flag:
+                print("Found %d (non-independent) relations.\n" % len(relations))
+            # Form a relation matrix, and reduce it.
+            A = matrix(K, relations, sparse=True, immutable=True)
+            A_reduced = A.rref()
 
-        # Get the spanning set
-        ordering = order_by_shell_level(shell_level)
-        spanning_set = get_spanning_set(A_reduced, ordering, shell_level)
+            # Get the spanning set
+            ordering = order_by_shell_level(shell_level)
+            spanning_set = get_spanning_set(A_reduced, ordering, shell_level)
 
-        # Base of the recursion: return the reduced matrix and spanning set.
-        dim_estimate = len(spanning_set)
-        if interactive_flag:
-            print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
-            print_generators(shell_level, spanning_set, order_by_shell_level)
+            # Base of the recursion: return the reduced matrix and spanning set.
+            dim_estimate = len(spanning_set)
+            if interactive_flag:
+                print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
+                print_generators(shell_level, spanning_set, order_by_shell_level)
 
-        return (A, A_reduced, [dim_estimate])
+            return (A, A_reduced, [dim_estimate])
+
+        else: # Recursing to a higher level and picking up where we left off.
+            if interactive_flag:
+                print("Using previosuly calculated relations for level %d..." % (shell_level))
+            return base_data
 
     else:
         # For each shell level, compute #{lattice points}.
@@ -426,7 +438,7 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag):
         if interactive_flag:
             print("Found %d (non-independent) relations. Reducing ..." % len(relations))
         # Get the relation matrix for the previous shell level, recursively.
-        prev_data = compute_reduced_matrix(gamma, shell_level - 1, interactive_flag)
+        prev_data = compute_reduced_matrix(gamma, shell_level - 1, interactive_flag, base_level, base_data)
         A_old = prev_data[1]
         dimensions = prev_data[2]
 
