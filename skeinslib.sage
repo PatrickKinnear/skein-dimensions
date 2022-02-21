@@ -142,7 +142,7 @@ def get_relations_empty(gamma, shell_level, order_func):
             u = p_1[1]
 
             #A constant appearing in our coefficients, we compute it in advance
-            K = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
+            C = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
 
             # The linear relation is between the four lattice points below:
             x_0 = vector(ZZ, p_0 + p_1, immutable=True)
@@ -153,16 +153,16 @@ def get_relations_empty(gamma, shell_level, order_func):
             # Check the relations are not out of range.
             if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
                 #Create vectors corresponding to the four lattice points.
-                x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
-                x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
-                x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
-                x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
+                x_0_vect = vector(K, [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
+                x_1_vect = vector(K, [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                x_2_vect = vector(K, [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
+                x_3_vect = vector(K, [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
                 # Compute the coefficients in the relation.
                 Q_0 = q**(-s*t)
                 Q_1 = q**(s*t)
-                Q_2 = -q**(K - r*(c*t + d*u))
-                Q_3 = -q**(K + r*(c*t + d*u))
+                Q_2 = -q**(C - r*(c*t + d*u))
+                Q_3 = -q**(C + r*(c*t + d*u))
 
                 #The relation is the following:
                 rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
@@ -217,7 +217,7 @@ def get_new_relations_empty(gamma, shell_level, order_func):
             u = p_1[1]
 
             #A constant appearing in our coefficients, we compute it in advance
-            K = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
+            C = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
 
             # The linear relation is between the four lattice points below:
             x_0 = vector(ZZ, p_0 + p_1, immutable=True)
@@ -230,16 +230,16 @@ def get_new_relations_empty(gamma, shell_level, order_func):
             if x_0 in ordering and x_1 in ordering and x_2 in ordering and x_3 in ordering:
                 if not (x_0  in list(ordering.keys())[:M] and x_1 in list(ordering.keys())[:M] and x_2 in list(ordering.keys())[:M] and x_3 in list(ordering.keys())[:M]):
 
-                    x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
-                    x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
-                    x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
-                    x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
+                    x_0_vect = vector(K, [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
+                    x_1_vect = vector(K, [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                    x_2_vect = vector(K, [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
+                    x_3_vect = vector(K, [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
                     # Compute the coefficients in the relation.
                     Q_0 = q**(-s*t)
                     Q_1 = q**(s*t)
-                    Q_2 = -q**(K - r*(c*t + d*u))
-                    Q_3 = -q**(K + r*(c*t + d*u))
+                    Q_2 = -q**(C - r*(c*t + d*u))
+                    Q_3 = -q**(C + r*(c*t + d*u))
 
                     #The relation is the following:
                     rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
@@ -444,9 +444,9 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1,
 
         # Use the new relations and old, reduced matrix to build the relations
         # matrix for this shell level, and reduce.
-        Zeros_right = zero_matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), A_old.nrows(), N - M, sparse=True)
+        Zeros_right = zero_matrix(K, A_old.nrows(), N - M, sparse=True)
         A_upper = block_matrix([[A_old, Zeros_right]])
-        A_lower = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
+        A_lower = matrix(K, relations, sparse=True, immutable=True)
         A = block_matrix([[A_upper], [A_lower]])
         A_reduced = A.rref()
 
@@ -483,7 +483,7 @@ def get_spanning_set(A, ordering, shell_level):
     # Iterate through the lattice.
     for lattice_pt in ordering.keys():
         #Corresponding length N vector.
-        basis_elt = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[lattice_pt] else 0 for i in range(N)], sparse=True)
+        basis_elt = vector(K, [1 if i == ordering[lattice_pt] else 0 for i in range(N)], sparse=True)
         A = A.rref() # Reduce A at each step.
         rk_A = A.rank() # Store the rank of A
         A = block_matrix([[A], [matrix(basis_elt)]]) # Augment A with the new vector.
