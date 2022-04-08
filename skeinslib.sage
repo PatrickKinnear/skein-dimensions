@@ -629,11 +629,12 @@ def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.cs
     #compute_write_low_trace(shell_levels, path, cache_path)
 
     # Dimensions for the family of shears (|trace = 2|).
-    #for n in range(11):
-    #    compute_write_from_seq([n], shell_levels, path, cache_path)
+    for n in range(7):
+        compute_write_from_seq([n], shell_levels, path, cache_path)
 
     # Dimensions for matrices of |trace| >  2
 
+    """
     cache = []  # Previously checked sequences.
     if append:
         if os.path.exists(cache_path):
@@ -650,6 +651,8 @@ def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.cs
             if not seq_has_been_checked(sequence, cache):
                 compute_write_from_seq(sequence, shell_levels, path, cache_path)
                 cache.append(sequence)
+
+    """
 
     return None
 
