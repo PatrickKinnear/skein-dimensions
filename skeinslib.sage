@@ -142,7 +142,7 @@ def get_relations_empty(gamma, shell_level, order_func):
             u = p_1[1]
 
             #A constant appearing in our coefficients, we compute it in advance
-            C = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
+            C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
 
             # The linear relation is between the four lattice points below:
             x_0 = vector(ZZ, p_0 + p_1, immutable=True)
@@ -217,7 +217,7 @@ def get_new_relations_empty(gamma, shell_level, order_func):
             u = p_1[1]
 
             #A constant appearing in our coefficients, we compute it in advance
-            C = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
+            C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
 
             # The linear relation is between the four lattice points below:
             x_0 = vector(ZZ, p_0 + p_1, immutable=True)
@@ -387,7 +387,7 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1,
     a previous call to the function (that is, a tuple of length 3). Usually this
     would be loaded as a sage object saved from a previous session. If the
     recursion base is unspecified then the default is recurse to shell_level 1
-    and compute this data from scratch.  
+    and compute this data from scratch.
     '''
 
     # Base case.
@@ -407,6 +407,8 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1,
             # Form a relation matrix, and reduce it.
             A = matrix(K, relations, sparse=True, immutable=True)
             A_reduced = A.rref()
+
+            print(A_reduced)
 
             # Get the spanning set
             ordering = order_by_shell_level(shell_level)
@@ -442,12 +444,17 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1,
         A_old = prev_data[1]
         dimensions = prev_data[2]
 
-        # Use the new relations and old, reduced matrix to build the relations
-        # matrix for this shell level, and reduce.
-        Zeros_right = zero_matrix(K, A_old.nrows(), N - M, sparse=True)
-        A_upper = block_matrix([[A_old, Zeros_right]])
-        A_lower = matrix(K, relations, sparse=True, immutable=True)
-        A = block_matrix([[A_upper], [A_lower]])
+        # Handle the case when there were no relations in the previous level
+        if len(A_old.rows()) == 0:
+            A = matrix(K, relations, sparse=True, immutable=True)
+        else:
+            # Use the new relations and old, reduced matrix to build the relations
+            # matrix for this shell level, and reduce.
+            Zeros_right = zero_matrix(K, A_old.nrows(), N - M, sparse=True)
+            A_upper = block_matrix([[A_old, Zeros_right]])
+            A_lower = matrix(K, relations, sparse=True, immutable=True)
+            A = block_matrix([[A_upper], [A_lower]])
+
         A_reduced = A.rref()
 
         # Get the spanning set
@@ -480,17 +487,23 @@ def get_spanning_set(A, ordering, shell_level):
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level
     spanning_set = []
 
-    # Iterate through the lattice.
-    for lattice_pt in ordering.keys():
-        #Corresponding length N vector.
-        basis_elt = vector(K, [1 if i == ordering[lattice_pt] else 0 for i in range(N)], sparse=True)
-        A = A.rref() # Reduce A at each step.
-        rk_A = A.rank() # Store the rank of A
-        A = block_matrix([[A], [matrix(basis_elt)]]) # Augment A with the new vector.
-        # If not in this span, add the position of the lattice point to the list
-        # of indices of spanning vectors (used to print generators).
-        if A.rank() > rk_A:
-            spanning_set.append(ordering[lattice_pt])
+    #Handle the case of the empty relation matrix
+    if len(A.rows()) == 0:
+        spanning_set = list(ordering.values())
+
+    else:
+        # Iterate through the lattice.
+        for lattice_pt in ordering.keys():
+            #Corresponding length N vector.
+            basis_elt = vector(K, [1 if i == ordering[lattice_pt] else 0 for i in range(N)], sparse=True)
+            A = A.rref() # Reduce A at each step.
+            rk_A = A.rank() # Store the rank of A
+            A = block_matrix([[A], [matrix(basis_elt)]]) # Augment A with the new vector.
+            # If not in this span, add the position of the lattice point to the list
+            # of indices of spanning vectors (used to print generators).
+            if A.rank() > rk_A:
+                spanning_set.append(ordering[lattice_pt])
+
     return spanning_set
 
 def compute_and_write(sequence, M, shell_levels, path, cache_path):
