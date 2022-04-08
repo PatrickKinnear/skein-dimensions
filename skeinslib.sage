@@ -408,8 +408,6 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1,
             A = matrix(K, relations, sparse=True, immutable=True)
             A_reduced = A.rref()
 
-            print(A_reduced)
-
             # Get the spanning set
             ordering = order_by_shell_level(shell_level)
             spanning_set = get_spanning_set(A_reduced, ordering, shell_level)
