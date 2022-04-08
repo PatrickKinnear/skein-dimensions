@@ -142,7 +142,7 @@ def get_relations_empty(gamma, shell_level, order_func):
             u = p_1[1]
 
             #A constant appearing in our coefficients, we compute it in advance
-            K = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
+            C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
 
             # The linear relation is between the four lattice points below:
             x_0 = vector(ZZ, p_0 + p_1, immutable=True)
@@ -153,16 +153,16 @@ def get_relations_empty(gamma, shell_level, order_func):
             # Check the relations are not out of range.
             if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
                 #Create vectors corresponding to the four lattice points.
-                x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
-                x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
-                x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
-                x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
+                x_0_vect = vector(K, [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
+                x_1_vect = vector(K, [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                x_2_vect = vector(K, [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
+                x_3_vect = vector(K, [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
                 # Compute the coefficients in the relation.
                 Q_0 = q**(-s*t)
                 Q_1 = q**(s*t)
-                Q_2 = -q**(K - r*(c*t + d*u))
-                Q_3 = -q**(K + r*(c*t + d*u))
+                Q_2 = -q**(C - r*(c*t + d*u))
+                Q_3 = -q**(C + r*(c*t + d*u))
 
                 #The relation is the following:
                 rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
@@ -217,7 +217,7 @@ def get_new_relations_empty(gamma, shell_level, order_func):
             u = p_1[1]
 
             #A constant appearing in our coefficients, we compute it in advance
-            K = (-r*(r-1)*a*c - s*(s-1)*b*d)/2 - r*s*c*b
+            C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
 
             # The linear relation is between the four lattice points below:
             x_0 = vector(ZZ, p_0 + p_1, immutable=True)
@@ -230,16 +230,16 @@ def get_new_relations_empty(gamma, shell_level, order_func):
             if x_0 in ordering and x_1 in ordering and x_2 in ordering and x_3 in ordering:
                 if not (x_0  in list(ordering.keys())[:M] and x_1 in list(ordering.keys())[:M] and x_2 in list(ordering.keys())[:M] and x_3 in list(ordering.keys())[:M]):
 
-                    x_0_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
-                    x_1_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
-                    x_2_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
-                    x_3_vect = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
+                    x_0_vect = vector(K, [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
+                    x_1_vect = vector(K, [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                    x_2_vect = vector(K, [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
+                    x_3_vect = vector(K, [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
                     # Compute the coefficients in the relation.
                     Q_0 = q**(-s*t)
                     Q_1 = q**(s*t)
-                    Q_2 = -q**(K - r*(c*t + d*u))
-                    Q_3 = -q**(K + r*(c*t + d*u))
+                    Q_2 = -q**(C - r*(c*t + d*u))
+                    Q_3 = -q**(C + r*(c*t + d*u))
 
                     #The relation is the following:
                     rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
@@ -363,15 +363,15 @@ def get_dim_single_skein(gamma):
     return dim
 
 
-def compute_reduced_matrix(gamma, shell_level, interactive_flag):
+def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1, base_data=None):
     '''
     Computes the reduced matrix of relations at a given shell level, as well as
     its co-rank, which is an estimate of the dimension of the empty part of the
     skein module
 
-    Returns a tuple (A, dim_estimates), where A is the matrix and dim_estimates
-    is the list of estimated dimensions for shell levels <= to the shell level
-    parameter.
+    Returns a tuple (A, A_reduced, dim_estimates), where A is the matrix and
+    dim_estimates is the list of estimated dimensions for shell levels <= to the
+    shell level parameter.
 
     Works recursively: the relation matrix for level n is built up as
 
@@ -382,36 +382,50 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag):
     where X is the matrix of relations for level n-1, in REF, obtained from a
     recursive call to the function, and the list relations is a list of
     relations at level n that were not already included at level n-1.
+
+    Supports recursion to a specified base_level, with base_data the results of
+    a previous call to the function (that is, a tuple of length 3). Usually this
+    would be loaded as a sage object saved from a previous session. If the
+    recursion base is unspecified then the default is recurse to shell_level 1
+    and compute this data from scratch.
     '''
 
-    # Base case: level 1.
-    if shell_level == 1:
-        # For each shell level, compute #{lattice points}.
-        N = (2*shell_level + 1)*(shell_level + 1) - shell_level
-        # And the number of points in previous level.
-        M = (2*shell_level - 1)*(shell_level) - shell_level + 1
-        if interactive_flag:
-            print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
+    # Base case.
+    if shell_level == base_level:
+        if base_level == 1: # Recursing all the way to level 1
+            # For each shell level, compute #{lattice points}.
+            N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+            # And the number of points in previous level.
+            M = (2*shell_level - 1)*(shell_level) - shell_level + 1
+            if interactive_flag:
+                print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
 
-        # Get the relations new to this shell level.
-        relations = get_new_relations_empty(gamma, shell_level, order_by_shell_level)
-        if interactive_flag:
-            print("Found %d (non-independent) relations.\n" % len(relations))
-        # Form a relation matrix, and reduce it.
-        A = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
-        A_reduced = A.rref()
+            # Get the relations new to this shell level.
+            relations = get_new_relations_empty(gamma, shell_level, order_by_shell_level)
+            if interactive_flag:
+                print("Found %d (non-independent) relations.\n" % len(relations))
+            # Form a relation matrix, and reduce it.
+            A = matrix(K, relations, sparse=True, immutable=True)
+            A_reduced = A.rref()
 
-        # Get the spanning set
-        ordering = order_by_shell_level(shell_level)
-        spanning_set = get_spanning_set(A_reduced, ordering, shell_level)
+            print(A_reduced)
 
-        # Base of the recursion: return the reduced matrix and spanning set.
-        dim_estimate = len(spanning_set)
-        if interactive_flag:
-            print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
-            print_generators(shell_level, spanning_set, order_by_shell_level)
+            # Get the spanning set
+            ordering = order_by_shell_level(shell_level)
+            spanning_set = get_spanning_set(A_reduced, ordering, shell_level)
 
-        return (A, A_reduced, [dim_estimate])
+            # Base of the recursion: return the reduced matrix and spanning set.
+            dim_estimate = len(spanning_set)
+            if interactive_flag:
+                print("Dimension estimate for empty skein part at level %d: %d.\n\nVisualisation:\n" % (shell_level, dim_estimate))
+                print_generators(shell_level, spanning_set, order_by_shell_level)
+
+            return (A, A_reduced, [dim_estimate])
+
+        else: # Recursing to a higher level and picking up where we left off.
+            if interactive_flag:
+                print("Using previosuly calculated relations for level %d..." % (shell_level))
+            return base_data
 
     else:
         # For each shell level, compute #{lattice points}.
@@ -426,16 +440,21 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag):
         if interactive_flag:
             print("Found %d (non-independent) relations. Reducing ..." % len(relations))
         # Get the relation matrix for the previous shell level, recursively.
-        prev_data = compute_reduced_matrix(gamma, shell_level - 1, interactive_flag)
+        prev_data = compute_reduced_matrix(gamma, shell_level - 1, interactive_flag, base_level, base_data)
         A_old = prev_data[1]
         dimensions = prev_data[2]
 
-        # Use the new relations and old, reduced matrix to build the relations
-        # matrix for this shell level, and reduce.
-        Zeros_right = zero_matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), A_old.nrows(), N - M, sparse=True)
-        A_upper = block_matrix([[A_old, Zeros_right]])
-        A_lower = matrix(FractionField(PolynomialRing(QQ, 'q', sparse=True)), relations, sparse=True, immutable=True)
-        A = block_matrix([[A_upper], [A_lower]])
+        # Handle the case when there were no relations in the previous level
+        if len(A_old.rows()) == 0:
+            A = matrix(K, relations, sparse=True, immutable=True)
+        else:
+            # Use the new relations and old, reduced matrix to build the relations
+            # matrix for this shell level, and reduce.
+            Zeros_right = zero_matrix(K, A_old.nrows(), N - M, sparse=True)
+            A_upper = block_matrix([[A_old, Zeros_right]])
+            A_lower = matrix(K, relations, sparse=True, immutable=True)
+            A = block_matrix([[A_upper], [A_lower]])
+
         A_reduced = A.rref()
 
         # Get the spanning set
@@ -468,17 +487,23 @@ def get_spanning_set(A, ordering, shell_level):
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level
     spanning_set = []
 
-    # Iterate through the lattice.
-    for lattice_pt in ordering.keys():
-        #Corresponding length N vector.
-        basis_elt = vector(FractionField(PolynomialRing(QQ, 'q', sparse=True)), [1 if i == ordering[lattice_pt] else 0 for i in range(N)], sparse=True)
-        A = A.rref() # Reduce A at each step.
-        rk_A = A.rank() # Store the rank of A
-        A = block_matrix([[A], [matrix(basis_elt)]]) # Augment A with the new vector.
-        # If not in this span, add the position of the lattice point to the list
-        # of indices of spanning vectors (used to print generators).
-        if A.rank() > rk_A:
-            spanning_set.append(ordering[lattice_pt])
+    #Handle the case of the empty relation matrix
+    if len(A.rows()) == 0:
+        spanning_set = list(ordering.values())
+
+    else:
+        # Iterate through the lattice.
+        for lattice_pt in ordering.keys():
+            #Corresponding length N vector.
+            basis_elt = vector(K, [1 if i == ordering[lattice_pt] else 0 for i in range(N)], sparse=True)
+            A = A.rref() # Reduce A at each step.
+            rk_A = A.rank() # Store the rank of A
+            A = block_matrix([[A], [matrix(basis_elt)]]) # Augment A with the new vector.
+            # If not in this span, add the position of the lattice point to the list
+            # of indices of spanning vectors (used to print generators).
+            if A.rank() > rk_A:
+                spanning_set.append(ordering[lattice_pt])
+
     return spanning_set
 
 def compute_and_write(sequence, M, shell_levels, path, cache_path):
