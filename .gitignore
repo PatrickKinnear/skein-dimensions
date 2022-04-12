@@ -1,7 +1,7 @@
 *.sage.py
 *.spyx
-*.csv
-*.txt
+./*.csv
+./*.txt
 .idea/
 data/
 .ipynb_checkpoints/
