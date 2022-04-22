@@ -551,7 +551,7 @@ def compute_and_write(sequence, M, shell_levels, try_defrost, dir_out, dir_in, o
 
     # If we are trying to defrost computations, and the data exists, use this to continue our computations
     # of the data for the empty skein part. Otherwise recurse to level 0.
-    if try_defrost and os.exists(seq_path_in):
+    if try_defrost and os.path.exists(seq_path_in):
         data = sage.misc.persist.load(seq_path_in)
         empty_data = compute_reduced_matrix(M, shell_levels, False, base_level=data[0], base_data=data[1:])
 
@@ -579,7 +579,7 @@ def compute_and_write(sequence, M, shell_levels, try_defrost, dir_out, dir_in, o
 
     return None
 
-def compute_write_low_trace(shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path):
+def compute_write_low_trace(shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path):
     '''
     Perform the computations for matrices of trace with abs val < 2, with a
     specified max shell level, and write to the file at path.
@@ -595,11 +595,11 @@ def compute_write_low_trace(shell_levels, try_defrost, dir_out, dir_in, output_p
 
     # Compute dimensions for the 3 matrices of low trace.
     for M in low_trace:
-        compute_and_write([], M, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path)
+        compute_and_write([], M, shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
 
     return None
 
-def compute_write_from_seq(sequence, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path):
+def compute_write_from_seq(sequence, shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path):
     '''
     Performs the dimension computations for an SL_2(Z) matrix of form
         R^{a_1}L^{a_2}...(R or L)^{a_k}
@@ -623,7 +623,7 @@ def compute_write_from_seq(sequence, shell_levels, try_defrost, dir_out, dir_in,
             #Multiply by L^a
             M = M*matrix(ZZ, 2, [1, 0, sequence[i], 1])
 
-    compute_and_write(sequence, M, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path)
+    compute_and_write(sequence=sequence, gamma=M, shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
     return None
 
 def seq_has_been_checked(seq, cache):
@@ -666,7 +666,7 @@ def fixup(dim_table, dir_in, dir_out):
                     new_path = os.path.join(dir_out, seq_string+".sobj")
                     sage.misc.persist.save(new_data, new_path)
 
-def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data", dir_out="data", output_path="skeindims-rawdata.csv", cache_path="deq-cache.csv"):
+def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data", dir_out="data", output_path="skeindims-rawdata.csv", cache_path="seq-cache.csv"):
     '''
     Generate several SL_2(Z) matrices, compute their skein dimension estimates,
     and write this data to a csv file.
@@ -680,6 +680,8 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
     In try_defrost mode, this dir_in will be searched for .sobj files containing
     the results of previous computations, in which case the computation will recurse
     to this base step.
+
+    Shell_levels is the total number of shell levels, including level 0 (!)
     '''
 
     half_max_seq_len = 3
@@ -694,14 +696,15 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
             os.remove(cache_path)
 
     # Dimensions for low trace matrices.
-    #compute_write_low_trace(shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path)
+    #compute_write_low_trace(shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
 
     # Dimensions for the family of shears (|trace = 2|).
     #for n in range(11):
-    #    compute_write_from_seq(sequence, shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path)
+    #    compute_write_from_seq(sequence=[n], shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
 
     # Dimensions for matrices of |trace| >  2
 
+    
     cache = []  # Previously checked sequences.
     if append:
         if os.path.exists(cache_path):
@@ -716,7 +719,7 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
         for sequence in sequences:
             #Exclude previously checked sequences up to cyclic permutation.
             if not seq_has_been_checked(sequence, cache):
-                compute_write_from_seq(sequence, shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path)
+                compute_write_from_seq(sequence=sequence, shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
                 cache.append(sequence)
 
     return None
