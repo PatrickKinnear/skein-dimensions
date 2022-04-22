@@ -44,9 +44,11 @@ The dimension of the single skein part is easily computed, and there is no
 estimation in this figure.
 '''
 
-import os
 import csv
 import itertools
+import os
+import pandas as pd
+
 from sage.all import *
 
 var('q')
@@ -523,7 +525,7 @@ def get_spanning_set(A, ordering, shell_level):
 
     return spanning_set
 
-def compute_and_write(sequence, M, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path):
+def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path):
     '''
     A helper function for generate_raw_data, handles the subroutine of
     collating the results of dimension computations for M (up to shell_levels
@@ -539,7 +541,7 @@ def compute_and_write(sequence, M, shell_levels, try_defrost, dir_out, dir_in, o
     if not os.path.exists(dir_out):
         os.mkdir(dir_out)
 
-    seq_string = "{0}_{1}_{2}_{3}".format(M[0, 0], M[0, 1], M[1, 0], M[1, 1])
+    seq_string = "{0}_{1}_{2}_{3}".format(gamma[0, 0], gamma[0, 1], gamma[1, 0], gamma[1, 1])
     seq_path_in = os.path.join(dir_in, seq_string+".sobj")
     seq_path_out = os.path.join(dir_out, seq_string+".sobj")
 
@@ -547,16 +549,16 @@ def compute_and_write(sequence, M, shell_levels, try_defrost, dir_out, dir_in, o
     q = var('q')
 
     # Get the dimension of the single skein.
-    dim_single = get_dim_single_skein(M)
+    dim_single = get_dim_single_skein(gamma)
 
     # If we are trying to defrost computations, and the data exists, use this to continue our computations
     # of the data for the empty skein part. Otherwise recurse to level 0.
     if try_defrost and os.path.exists(seq_path_in):
         data = sage.misc.persist.load(seq_path_in)
-        empty_data = compute_reduced_matrix(M, shell_levels, False, base_level=data[0], base_data=data[1:])
+        empty_data = compute_reduced_matrix(gamma, shell_levels, False, base_level=data[0], base_data=data[1:])
 
     else:
-        empty_data = compute_reduced_matrix(M, shell_levels, False)
+        empty_data = compute_reduced_matrix(gamma, shell_levels, False)
 
     # Extract some of the numbers we are interested in.
     dim_estimates = empty_data[2]
@@ -565,7 +567,7 @@ def compute_and_write(sequence, M, shell_levels, try_defrost, dir_out, dir_in, o
     # Write the relevant data to the output files.
     with open(output_path, "a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([M.trace(), M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single, dim_total] + dim_estimates + list(sequence))
+        writer.writerow([gamma.trace(), gamma[0, 0], gamma[0, 1], gamma[1, 0], gamma[1, 1], dim_single, dim_total] + dim_estimates + list(sequence))
     f.close()
 
     A = empty_data[0]
@@ -704,7 +706,6 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
 
     # Dimensions for matrices of |trace| >  2
 
-    
     cache = []  # Previously checked sequences.
     if append:
         if os.path.exists(cache_path):
