@@ -604,6 +604,35 @@ def seq_has_been_checked(seq, cache):
             return True
     return False
 
+def fixup(dim_table, dir_in, dir_out):
+    '''
+    A helper function.
+    '''
+    
+    with open(dim_table, newline="") as cache_file:
+                cache_reader = csv.reader(cache_file)
+                next(cache_reader)
+                for data_entry in cache_reader:
+                    print(data_entry)
+
+                    M = data_entry[1:5]
+                    seq_string = "{0}_{1}_{2}_{3}".format(*M)
+                    seq_path = os.path.join(dir_in, seq_string+".sobj")
+
+                    data = sage.misc.persist.load(seq_path)
+                    shell_levels = data[0]
+                    dim_ests = data_entry[7:shell_levels+7]
+                    new_data = (data[0], data[1], data[2], dim_ests)
+                    #print(data_entry)
+                    #print(dim_ests)
+
+                    if not os.path.exists(dir_out):
+                        os.mkdir(dir_out)
+
+
+                    new_path = os.path.join(dir_out, seq_string+".sobj")
+                    sage.misc.persist.save(new_data, new_path)
+
 def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.csv"):
     '''
     Generate several SL_2(Z) matrices, compute their skein dimension estimates,
