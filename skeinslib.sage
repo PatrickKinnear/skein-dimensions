@@ -362,6 +362,25 @@ def get_dim_single_skein(gamma):
 
     return dim
 
+def compute_reduced_matrix_defrost(gamma, shell_level, data_path):
+    '''
+    Invokes compute_reduced_matrix, but only computing to a specified recursion
+    base which is stored in the .sobj file given by data_path. This must unpack
+    to a list/tuple of length 3, with contents [shell_levels, A, A_reduced, [dim_estimates]] from
+    a previous run of compute_reduced_matrix.
+
+    Note that, if the default file naming conventions of the program are used,
+    then the file at data_path will be overwritten when this function is called.
+    '''
+
+    if not os.exists(data_path):
+        print("Error, file not found")
+        sys.exit(1)
+
+    data = sage.misc.persist.load("data_path")
+
+    return compute_reduced_matrix(gamma, shell_level, interactive_flag=False, base_level = data[0], base_data = data[1:])
+
 
 def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1, base_data=None):
     '''
@@ -504,40 +523,54 @@ def get_spanning_set(A, ordering, shell_level):
 
     return spanning_set
 
-def compute_and_write(sequence, M, shell_levels, path, cache_path):
+def compute_and_write(sequence, M, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path):
     '''
     A helper function for generate_raw_data, handles the subroutine of
     collating the results of dimension computations for M (up to shell_levels
-    cutoff) and writes to the file at path, in append mode.
-    Also stores the relation matrix, and reduced version, and maintains a
-    persistent cache.
+    cutoff) and writes to the file at output_path, in append mode.
+    Also stores the relation matrix, reduced version, and dim estimates as a 
+    tuple sage object, and maintains a persistent cache. If try_defrost=True, 
+    will attempt to load the results of previous computations and use these 
+    to only recurse to a specified base in compute-reduced_matrix.
     '''
+
+    # Store the computed sage objects in a folder /data, indexed by the matrix
+    # entries.
+    if not os.path.exists(dir_out):
+        os.mkdir(dir_out)
+
+    seq_string = "{0}_{1}_{2}_{3}".format(M[0, 0], M[0, 1], M[1, 0], M[1, 1])
+    seq_path_in = os.path.join(dir_in, seq_string+".sobj")
+    seq_path_out = os.path.join(dir_out, seq_string+".sobj")
+
     # Declare an indeterminate q.
     q = var('q')
-    # Get the dimension of the single skein, the esitmates for the empty skein
-    # (not using interactive mode), and the sum of single dimension and the last
-    # estimated empty dimension.
+
+    # Get the dimension of the single skein.
     dim_single = get_dim_single_skein(M)
 
-    empty_data = compute_reduced_matrix(M, shell_levels, False)
+    # If we are trying to defrost computations, and the data exists, use this to continue our computations
+    # of the data for the empty skein part. Otherwise recurse to level 0.
+    if try_defrost and os.exists(seq_path_in):
+        data = sage.misc.persist.load(seq_path_in)
+        empty_data = compute_reduced_matrix(M, shell_levels, False, base_level=data[0], base_data=data[1:])
+
+    else:
+        empty_data = compute_reduced_matrix(M, shell_levels, False)
+
+    # Extract some of the numbers we are interested in.
     dim_estimates = empty_data[2]
     dim_total = dim_single + dim_estimates[-1]
 
     # Write the relevant data to the output files.
-    with open(path, "a", newline="") as f:
+    with open(output_path, "a", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([M.trace(), M[0, 0], M[0, 1], M[1, 0], M[1, 1], dim_single, dim_total] + dim_estimates + list(sequence))
     f.close()
 
-    # Store the computed sage objects in a folder /data, indexed by the matrix
-    # entries.
-    if not os.path.exists("./data"):
-        os.mkdir("data")
-
-    seq_string = "{0}_{1}_{2}_{3}".format(M[0, 0], M[0, 1], M[1, 0], M[1, 1])
     A = empty_data[0]
     A_reduced = empty_data[1]
-    sage.misc.persist.save([shell_levels, A, A_reduced], "./data/"+seq_string)
+    sage.misc.persist.save([shell_levels, A, A_reduced, dim_estimates], seq_path_out)
 
     # Write the computed sequence to the persistent cache file.
     with open(cache_path, "a", newline="") as f:
@@ -546,7 +579,7 @@ def compute_and_write(sequence, M, shell_levels, path, cache_path):
 
     return None
 
-def compute_write_low_trace(shell_levels, path, cache_path):
+def compute_write_low_trace(shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path):
     '''
     Perform the computations for matrices of trace with abs val < 2, with a
     specified max shell level, and write to the file at path.
@@ -562,11 +595,11 @@ def compute_write_low_trace(shell_levels, path, cache_path):
 
     # Compute dimensions for the 3 matrices of low trace.
     for M in low_trace:
-        compute_and_write([], M, shell_levels, path, cache_path)
+        compute_and_write([], M, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path)
 
     return None
 
-def compute_write_from_seq(sequence, shell_levels, path, cache_path):
+def compute_write_from_seq(sequence, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path):
     '''
     Performs the dimension computations for an SL_2(Z) matrix of form
         R^{a_1}L^{a_2}...(R or L)^{a_k}
@@ -590,7 +623,7 @@ def compute_write_from_seq(sequence, shell_levels, path, cache_path):
             #Multiply by L^a
             M = M*matrix(ZZ, 2, [1, 0, sequence[i], 1])
 
-    compute_and_write(sequence, M, shell_levels, path, cache_path)
+    compute_and_write(sequence, M, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path)
     return None
 
 def seq_has_been_checked(seq, cache):
@@ -633,7 +666,7 @@ def fixup(dim_table, dir_in, dir_out):
                     new_path = os.path.join(dir_out, seq_string+".sobj")
                     sage.misc.persist.save(new_data, new_path)
 
-def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.csv"):
+def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data", dir_out="data", output_path="skeindims-rawdata.csv", cache_path="deq-cache.csv"):
     '''
     Generate several SL_2(Z) matrices, compute their skein dimension estimates,
     and write this data to a csv file.
@@ -641,13 +674,19 @@ def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.cs
     Maintains a cache of previously checked sequences. In append mode, this is
     loaded from a csv and the new dimension data is appended to an existing
     output file.
+
+    All data is stored in the directory specified by dir_out. 
+    
+    In try_defrost mode, this dir_in will be searched for .sobj files containing
+    the results of previous computations, in which case the computation will recurse
+    to this base step.
     '''
 
     half_max_seq_len = 3
 
     if not append:
         # Open a file for the raw data, and write a header.
-        with open(path, "w", newline="") as f:
+        with open(output_path, "w", newline="") as f:
             writer = csv.writer(f)
             writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "total_dim"] + ["shell_{n}".format(n=i) for i in range(shell_levels)] + ["seq_{n}".format(n=i) for i in range(2*half_max_seq_len)])
         # Reset the cache
@@ -655,11 +694,11 @@ def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.cs
             os.remove(cache_path)
 
     # Dimensions for low trace matrices.
-    #compute_write_low_trace(shell_levels, path, cache_path)
+    #compute_write_low_trace(shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path)
 
     # Dimensions for the family of shears (|trace = 2|).
-    #for n in range(7):
-    #    compute_write_from_seq([n], shell_levels, path, cache_path)
+    #for n in range(11):
+    #    compute_write_from_seq(sequence, shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path)
 
     # Dimensions for matrices of |trace| >  2
 
@@ -677,7 +716,7 @@ def generate_raw_data(path, shell_levels, append=False, cache_path="seq-cache.cs
         for sequence in sequences:
             #Exclude previously checked sequences up to cyclic permutation.
             if not seq_has_been_checked(sequence, cache):
-                compute_write_from_seq(sequence, shell_levels, path, cache_path)
+                compute_write_from_seq(sequence, shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path)
                 cache.append(sequence)
 
     return None
