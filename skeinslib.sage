@@ -686,12 +686,12 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
     compute_write_low_trace(shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
 
     # Dimensions for the family of shears (|trace = 2|).
-    #for n in range(11):
-    #    compute_write_from_seq(sequence=[n], shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
+    for n in range(11):
+        compute_write_from_seq(sequence=[n], shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
 
     # Dimensions for matrices of |trace| >  2
 
-    '''
+    
     cache = []  # Previously checked sequences.
     if append:
         if os.path.exists(cache_path):
@@ -708,7 +708,7 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
             if not seq_has_been_checked(sequence, cache):
                 compute_write_from_seq(sequence=sequence, shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
                 cache.append(sequence)
-    '''
+    
 
     return None
 
