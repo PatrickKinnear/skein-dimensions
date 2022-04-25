@@ -104,11 +104,13 @@ def order_by_shell_level(shell_level):
 
 def get_relations_empty(gamma, shell_level, order_func):
     '''
-    Returns a list of linear relations between lattice points for a specified
+    Returns a dict of linear relations between lattice points for a specified
     shell level.
+
     Each ordered pair of lattice points determines a relation between four other
     lattice points, where lattice points correspond to generators of the empty
     part of the skein module.
+
     Requires integer shell_level, and function order_func : int -> (dict, list)
     which should produce: a dictionary with keys being lattice points in a
     certain shell level, and values being their position in some sequential
@@ -116,6 +118,7 @@ def get_relations_empty(gamma, shell_level, order_func):
     to indices of vectors in the space they span); and a list of lattice points
     in this order (required to produce the four related lattice points using
     basic linalg).
+    
     Performs a double loop through the lattice, obtains the relation between
     four points for each pair of points, and discards trivial or out-of-range
     relations.
@@ -176,7 +179,9 @@ def get_relations_empty(gamma, shell_level, order_func):
 def get_new_relations_empty(gamma, shell_level, order_func):
     '''
     Returns a list of linear relations between lattice points for a specified
-    shell level.
+    shell level. Like get_relations_empty except only returns the relations
+    which are new at the specified shell level (did not occur at the previous
+    level).
 
     Each ordered pair of lattice points determines a relation between four other
     lattice points, where lattice points correspond to generators of the empty
@@ -295,8 +300,9 @@ def print_generators(shell_level, spanning_set, order_func):
 def order_lexi():
     '''
     Returns an ordering on 1x2 vector representations of basis elements of
-    C[X, Y]/(X^2, Y^2). The element R = X^aY^b is the vector r = [a, b], so that
-    RS is given by rs and gamma.R is r*gamma.T, and the basis is {1, X, Y, XY}.
+    C[X, Y]/(X^2 - 1, Y^2 - 1). The element R = X^aY^b is the vector r = [a, b],
+    so that RS is given by rs and gamma.R is r*gamma.T, and the basis is 
+    {1, X, Y, XY}.
 
     Returns a dictionary giving lexicographical ordering on these vectors.
 
@@ -330,9 +336,9 @@ def get_dim_single_skein(gamma):
     2 with Z/2-entries, i.e. X^aY^b is [a, b], and these are ordered
     lexicographically.
 
-    The implementation is similar to get_relations: for all pairs of basis
-    elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators, then
-    the corank of these relations is the required dimension.
+    The implementation is similar to get_relations_empty: for all pairs of basis
+    elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators, 
+    then the corank of these relations is the required dimension.
     '''
     Z_2 = Integers(2) # Integers mod 2
     order_dict = order_lexi() # A dict and list to order the basis
