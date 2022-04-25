@@ -76,6 +76,7 @@ def order_by_shell_level(shell_level):
     are immutable sage vectors in ZZ, values are position in ordering.
     Implemented recursively.
     '''
+
     # Base case: shell level 0
     if shell_level == 0:
         order_dict = {vector(ZZ, [0, 0], immutable=True) : 0}
@@ -266,6 +267,7 @@ def print_generators(shell_level, spanning_set, order_func):
     Takes the shell level, a tuple giving the indices of the spanning set, and
     the order_func to map lattice points to indices for comparison.
     '''
+
     max_width = os.get_terminal_size().columns #Check terminal is wide enough
     if 2*(2*shell_level + 1) > max_width:
         print("Cannot display spanning set graphically.")
@@ -314,6 +316,7 @@ def order_lexi():
     and the ordering persists (from Python 3.7), i.e. oder-dict.keys() is an
     iterable with the vectors given in the ordering.
     '''
+
     Z_2 = Integers(2) # Work mod 2
     order_dict = {}
     place = 0 # Record the place in the ordering
@@ -342,6 +345,7 @@ def get_dim_single_skein(gamma):
     elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators, 
     then the corank of these relations is the required dimension.
     '''
+
     Z_2 = Integers(2) # Integers mod 2
     order_dict = order_lexi() # A dict and list to order the basis
 
@@ -509,6 +513,7 @@ def get_spanning_set(A, ordering, shell_level):
     a vector not in the span of B, its position in the ordering is added to the
     list of spanning vectors.
     '''
+
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level
     spanning_set = []
 
@@ -531,19 +536,19 @@ def get_spanning_set(A, ordering, shell_level):
 
     return spanning_set
 
-def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path):
+def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path):
     '''
     A helper function for generate_raw_data, handles the subroutine of
     collating the results of dimension computations for M (up to shell_levels
     cutoff) and writes to the file at output_path, in append mode.
+
     Also stores the relation matrix, reduced version, and dim estimates as a 
     tuple sage object, and maintains a persistent cache. If try_defrost=True, 
     will attempt to load the results of previous computations and use these 
     to only recurse to a specified base in compute-reduced_matrix.
     '''
 
-    # Store the computed sage objects in a folder /data, indexed by the matrix
-    # entries.
+    # Store the computed sage objects in dir_out, indexed by the matrix entries.
     if not os.path.exists(dir_out):
         os.mkdir(dir_out)
 
@@ -562,7 +567,6 @@ def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_out, dir_i
     if try_defrost and os.path.exists(seq_path_in):
         data = sage.misc.persist.load(seq_path_in)
         empty_data = compute_reduced_matrix(gamma, shell_levels, False, base_level=data[0], base_data=data[1:])
-
     else:
         empty_data = compute_reduced_matrix(gamma, shell_levels, False)
 
@@ -592,6 +596,7 @@ def compute_write_low_trace(shell_levels, try_defrost, dir_in, dir_out, output_p
     Perform the computations for matrices of trace with abs val < 2, with a
     specified max shell level, and write to the file at path.
     '''
+
     #Trace 0 matrix
     S = matrix(ZZ, 2, [0, -1, 1, 0])
 
@@ -613,10 +618,12 @@ def compute_write_from_seq(sequence, shell_levels, try_defrost, dir_in, dir_out,
         R^{a_1}L^{a_2}...(R or L)^{a_k}
     given a sequence (a_k). Computations performed up to a max shell level, and
     written to path.
+
     Here R = [[1, 1], [0, 1]], L = [[1, 0], [1, 1]] so that R^n is
     [[1, n], [0, 1]] and this is how we implement the exponentiation (similar
     for L).
     '''
+
     #Generators for |trace| >= 2 matrices
     R = matrix(ZZ, 2, [1, 1, 0, 1])
     L = matrix(ZZ, 2, [1, 0, 1, 1])
@@ -639,6 +646,7 @@ def seq_has_been_checked(seq, cache):
     Checks is the given sequence, or any rotation thereof, is in the cache of
     already-checked sequences.
     '''
+
     for i in range(len(seq)):
         seq = seq[1:] + seq[:1] # Rotate the sequence once.
         if seq in cache: # Check cache membership.
@@ -675,7 +683,7 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
             os.remove(cache_path)
 
     # Dimensions for low trace matrices.
-    #compute_write_low_trace(shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
+    compute_write_low_trace(shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
 
     # Dimensions for the family of shears (|trace = 2|).
     #for n in range(11):
@@ -683,6 +691,7 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
 
     # Dimensions for matrices of |trace| >  2
 
+    '''
     cache = []  # Previously checked sequences.
     if append:
         if os.path.exists(cache_path):
@@ -699,6 +708,7 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
             if not seq_has_been_checked(sequence, cache):
                 compute_write_from_seq(sequence=sequence, shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
                 cache.append(sequence)
+    '''
 
     return None
 
@@ -707,12 +717,13 @@ def write_dim_table(rawpath, outpath, shell_levels):
     Parses data produced by generate_raw_data, stored in the file rawpath, and
     gives this as a formatted table written to the file at outpath.
     '''
+
     df  = pd.read_csv(rawpath, dtype=str)
 
     #Calculate values that may be required for padding and alignment.
     max_tr_len = df["trace"].map(len).max()
     max_entry_len = df[["a", "b", "c", "d"]].applymap(len).values.max()
-    max_empty_dim_len = df["shell_{n}".format(n=shell_levels)].map(len).max()
+    max_empty_dim_len = df["shell_{n}".format(n=shell_levels-1)].map(len).max()
     max_total_dim_len = df["total_dim"].map(len).max()
 
     mat_line_length = 5 + max_entry_len*2
@@ -726,9 +737,9 @@ def write_dim_table(rawpath, outpath, shell_levels):
             print("{tr: >{max_tr_len}s}\t\t".format(tr=row["trace"], max_tr_len=max(max_tr_len, len("TRACE"))), end="", file=f)
             print("[[{a: >{max_entry_len}s} {b: >{max_entry_len}s}] \t\t".format(a=row["a"], b=row["b"], max_entry_len=max_entry_len), end="", file=f)
             print("{sing: >6s}\t".format(sing=row["single_dim"]), end="", file=f)
-            print("{empty: >{max_empty_dim_len}s}\t".format(empty=row["shell_{n}".format(n=shell_levels)], max_empty_dim_len = max(max_empty_dim_len, len("EMPTY"))), end="", file=f)
+            print("{empty: >{max_empty_dim_len}s}\t".format(empty=row["shell_{n}".format(n=shell_levels-1)], max_empty_dim_len = max(max_empty_dim_len, len("EMPTY"))), end="", file=f)
             print("{tot: >{max_total_dim_len}s}\t\t\t".format(tot=row["total_dim"], max_total_dim_len=max(max_total_dim_len, len("TOTAL"))), end="", file=f)
-            print("{ests}".format(ests=row[["shell_{n}".format(n=i) for i in range(shell_levels + 1)]].values.tolist()), file=f)
+            print("{ests}".format(ests=row[["shell_{n}".format(n=i) for i in range(shell_levels)]].values.tolist()), file=f)
             print(" "*max(max_tr_len,  5) + "\t\t" + " ", end="", file=f)
             print("[{c: >{max_entry_len}s} {d: >{max_entry_len}s}]]".format(c=row["c"], d=row["d"], max_entry_len=max_entry_len), file=f)
             print("", file=f)

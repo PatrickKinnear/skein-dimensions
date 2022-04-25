@@ -159,7 +159,7 @@ elif choice == "g":
         if len(sys.argv) >= 4:
             shell_levels = int(sys.argv[3])
 
-    generate_raw_data(path, shell_levels)
+    generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data", dir_out="data", output_path=path, cache_path="seq-cache.csv")
 
 # Presentation mode:
 elif choice == "w":
@@ -186,7 +186,7 @@ elif choice == "gw":
             outpath = sys.argv[3]
             if len(sys.argv) >= 5:
                 shell_levels = int(sys.argv[4])
-    generate_raw_data(rawpath, shell_levels)
+    generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data", dir_out="data", output_path=rawpath, cache_path="seq-cache.csv")
     write_dim_table(rawpath, outpath, shell_levels)
 
 # Exit if an pinvalid mode choice is made.
