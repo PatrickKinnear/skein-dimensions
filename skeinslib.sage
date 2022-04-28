@@ -533,6 +533,9 @@ def get_spanning_set(A, ordering, shell_level):
             # of indices of spanning vectors (used to print generators).
             if A.rank() > rk_A:
                 spanning_set.append(ordering[lattice_pt])
+            # Otherwise, discard the augmenting vector.
+            else:
+                A = A[:-1]
 
     return spanning_set
 
@@ -555,9 +558,6 @@ def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_in, dir_ou
     seq_string = "{0}_{1}_{2}_{3}".format(gamma[0, 0], gamma[0, 1], gamma[1, 0], gamma[1, 1])
     seq_path_in = os.path.join(dir_in, seq_string+".sobj")
     seq_path_out = os.path.join(dir_out, seq_string+".sobj")
-
-    # Declare an indeterminate q.
-    q = var('q')
 
     # Get the dimension of the single skein.
     dim_single = get_dim_single_skein(gamma)
