@@ -105,6 +105,23 @@ def order_by_shell_level(shell_level):
 
     return order_dict
 
+def force_into_fundamental_domain(v):
+    '''
+    Takes any vector v in the Z^2 lattice and returns a representative of v in
+    the fundamental domain of the Z/2-action by rotation. The chosen fundamental
+    domain is (r, s) with r + s >= 0 (for r <= 0) and r + s >= 1 (for r > 0).
+    '''
+    if v[0] <= 0:
+        if v[0] + v[1] < 0:
+            return vector(ZZ, -v, immutable=True)
+        else:
+            return v
+    else:
+        if v[0] + v[1] < 1:
+            return vector(ZZ, -v, immutable=True)
+        else:
+            return v
+
 def get_relations_empty(gamma, shell_level, order_func):
     '''
     Returns a dict of linear relations between lattice points for a specified
@@ -121,7 +138,7 @@ def get_relations_empty(gamma, shell_level, order_func):
     to indices of vectors in the space they span); and a list of lattice points
     in this order (required to produce the four related lattice points using
     basic linalg).
-    
+
     Performs a double loop through the lattice, obtains the relation between
     four points for each pair of points, and discards trivial or out-of-range
     relations.
@@ -151,10 +168,10 @@ def get_relations_empty(gamma, shell_level, order_func):
             C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
 
             # The linear relation is between the four lattice points below:
-            x_0 = vector(ZZ, p_0 + p_1, immutable=True)
-            x_1 = vector(ZZ, p_0 - p_1, immutable=True)
-            x_2 = vector(ZZ, p_0 + p_1*gamma.T, immutable=True)
-            x_3 = vector(ZZ, p_0 - p_1*gamma.T, immutable=True)
+            x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
+            x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
+            x_2 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1*gamma.T, immutable=True))
+            x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
 
             # Check the relations are not out of range.
             if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
@@ -228,10 +245,10 @@ def get_new_relations_empty(gamma, shell_level, order_func):
             C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
 
             # The linear relation is between the four lattice points below:
-            x_0 = vector(ZZ, p_0 + p_1, immutable=True)
-            x_1 = vector(ZZ, p_0 - p_1, immutable=True)
-            x_2 = vector(ZZ, p_0 + p_1*gamma.T, immutable=True)
-            x_3 = vector(ZZ, p_0 - p_1*gamma.T, immutable=True)
+            x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
+            x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
+            x_2 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1*gamma.T, immutable=True))
+            x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
 
             # Check the relations are not out of range.
 
@@ -305,7 +322,7 @@ def order_lexi():
     '''
     Returns an ordering on 1x2 vector representations of basis elements of
     C[X, Y]/(X^2 - 1, Y^2 - 1). The element R = X^aY^b is the vector r = [a, b],
-    so that RS is given by rs and gamma.R is r*gamma.T, and the basis is 
+    so that RS is given by rs and gamma.R is r*gamma.T, and the basis is
     {1, X, Y, XY}.
 
     Returns a dictionary giving lexicographical ordering on these vectors.
@@ -342,7 +359,7 @@ def get_dim_single_skein(gamma):
     lexicographically.
 
     The implementation is similar to get_relations_empty: for all pairs of basis
-    elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators, 
+    elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators,
     then the corank of these relations is the required dimension.
     '''
 
@@ -545,9 +562,9 @@ def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_in, dir_ou
     collating the results of dimension computations for M (up to shell_levels
     cutoff) and writes to the file at output_path, in append mode.
 
-    Also stores the relation matrix, reduced version, and dim estimates as a 
-    tuple sage object, and maintains a persistent cache. If try_defrost=True, 
-    will attempt to load the results of previous computations and use these 
+    Also stores the relation matrix, reduced version, and dim estimates as a
+    tuple sage object, and maintains a persistent cache. If try_defrost=True,
+    will attempt to load the results of previous computations and use these
     to only recurse to a specified base in compute-reduced_matrix.
     '''
 
@@ -662,8 +679,8 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
     loaded from a csv and the new dimension data is appended to an existing
     output file.
 
-    All data is stored in the directory specified by dir_out. 
-    
+    All data is stored in the directory specified by dir_out.
+
     In try_defrost mode, this dir_in will be searched for .sobj files containing
     the results of previous computations, in which case the computation will recurse
     to this base step.
@@ -691,7 +708,7 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
 
     # Dimensions for matrices of |trace| >  2
 
-    
+
     cache = []  # Previously checked sequences.
     if append:
         if os.path.exists(cache_path):
@@ -708,7 +725,7 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
             if not seq_has_been_checked(sequence, cache):
                 compute_write_from_seq(sequence=sequence, shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
                 cache.append(sequence)
-    
+
 
     return None
 
