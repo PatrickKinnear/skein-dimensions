@@ -275,6 +275,48 @@ def get_new_relations_empty(gamma, shell_level, order_func):
 
     return relations
 
+def get_relation(gamma, p_0, p_1):
+    '''
+    Given p_0, p_1 (immutable vectors), returns the gamma-twisted commutator
+    p_0, p_1 as a zipped list of coefficients and lattice vectors.
+    '''
+
+    #Unpack the matrix gamma.
+    a = gamma[0, 0]
+    b = gamma[0, 1]
+    c = gamma[1, 0]
+    d = gamma[1, 1]
+
+    q = var('q') # Must be defined here to alllow compiled sage.
+
+    r = p_0[0]
+    s = p_0[1]
+    t = p_1[0]
+    u = p_1[1]
+
+    #A constant appearing in our coefficients, we compute it in advance
+    C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
+
+    # The linear relation is between the four lattice points below:
+    x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
+    x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
+    x_2 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1*gamma.T, immutable=True))
+    x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
+
+    lattice_pts = [x_0, x_1, x_2, x_3]
+
+    # Compute the coefficients in the relation.
+    Q_0 = q**(-s*t)
+    Q_1 = q**(s*t)
+    Q_2 = -q**(C - r*(c*t + d*u))
+    Q_3 = -q**(C + r*(c*t + d*u))
+
+    coeffs = [Q_0, Q_1, Q_2, Q_3]
+    #The relation is the following:
+    rel = list(zip(coeffs, lattice_pts))
+
+    return rel
+
 def print_generators(shell_level, spanning_set, order_func):
     '''
     Prints a visualisation of the spanning lattice points to the command line.
