@@ -76,6 +76,7 @@ def order_by_shell_level(shell_level):
     are immutable sage vectors in ZZ, values are position in ordering.
     Implemented recursively.
     '''
+
     # Base case: shell level 0
     if shell_level == 0:
         order_dict = {vector(ZZ, [0, 0], immutable=True) : 0}
@@ -104,13 +105,32 @@ def order_by_shell_level(shell_level):
 
     return order_dict
 
+def force_into_fundamental_domain(v):
+    '''
+    Takes any vector v in the Z^2 lattice and returns a representative of v in
+    the fundamental domain of the Z/2-action by rotation. The chosen fundamental
+    domain is (r, s) with r + s >= 0 (for r <= 0) and r + s >= 1 (for r > 0).
+    '''
+    if v[0] <= 0:
+        if v[0] + v[1] < 0:
+            return vector(ZZ, -v, immutable=True)
+        else:
+            return v
+    else:
+        if v[0] + v[1] < 1:
+            return vector(ZZ, -v, immutable=True)
+        else:
+            return v
+
 def get_relations_empty(gamma, shell_level, order_func):
     '''
-    Returns a list of linear relations between lattice points for a specified
+    Returns a dict of linear relations between lattice points for a specified
     shell level.
+
     Each ordered pair of lattice points determines a relation between four other
     lattice points, where lattice points correspond to generators of the empty
     part of the skein module.
+
     Requires integer shell_level, and function order_func : int -> (dict, list)
     which should produce: a dictionary with keys being lattice points in a
     certain shell level, and values being their position in some sequential
@@ -118,6 +138,7 @@ def get_relations_empty(gamma, shell_level, order_func):
     to indices of vectors in the space they span); and a list of lattice points
     in this order (required to produce the four related lattice points using
     basic linalg).
+
     Performs a double loop through the lattice, obtains the relation between
     four points for each pair of points, and discards trivial or out-of-range
     relations.
@@ -147,10 +168,10 @@ def get_relations_empty(gamma, shell_level, order_func):
             C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
 
             # The linear relation is between the four lattice points below:
-            x_0 = vector(ZZ, p_0 + p_1, immutable=True)
-            x_1 = vector(ZZ, p_0 - p_1, immutable=True)
-            x_2 = vector(ZZ, p_0 + p_1*gamma.T, immutable=True)
-            x_3 = vector(ZZ, p_0 - p_1*gamma.T, immutable=True)
+            x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
+            x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
+            x_2 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1*gamma.T, immutable=True))
+            x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
 
             # Check the relations are not out of range.
             if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
@@ -178,7 +199,9 @@ def get_relations_empty(gamma, shell_level, order_func):
 def get_new_relations_empty(gamma, shell_level, order_func):
     '''
     Returns a list of linear relations between lattice points for a specified
-    shell level.
+    shell level. Like get_relations_empty except only returns the relations
+    which are new at the specified shell level (did not occur at the previous
+    level).
 
     Each ordered pair of lattice points determines a relation between four other
     lattice points, where lattice points correspond to generators of the empty
@@ -222,10 +245,10 @@ def get_new_relations_empty(gamma, shell_level, order_func):
             C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
 
             # The linear relation is between the four lattice points below:
-            x_0 = vector(ZZ, p_0 + p_1, immutable=True)
-            x_1 = vector(ZZ, p_0 - p_1, immutable=True)
-            x_2 = vector(ZZ, p_0 + p_1*gamma.T, immutable=True)
-            x_3 = vector(ZZ, p_0 - p_1*gamma.T, immutable=True)
+            x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
+            x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
+            x_2 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1*gamma.T, immutable=True))
+            x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
 
             # Check the relations are not out of range.
 
@@ -252,6 +275,48 @@ def get_new_relations_empty(gamma, shell_level, order_func):
 
     return relations
 
+def get_relation(gamma, p_0, p_1):
+    '''
+    Given p_0, p_1 (immutable vectors), returns the gamma-twisted commutator
+    p_0, p_1 as a zipped list of coefficients and lattice vectors.
+    '''
+
+    #Unpack the matrix gamma.
+    a = gamma[0, 0]
+    b = gamma[0, 1]
+    c = gamma[1, 0]
+    d = gamma[1, 1]
+
+    q = var('q') # Must be defined here to alllow compiled sage.
+
+    r = p_0[0]
+    s = p_0[1]
+    t = p_1[0]
+    u = p_1[1]
+
+    #A constant appearing in our coefficients, we compute it in advance
+    C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
+
+    # The linear relation is between the four lattice points below:
+    x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
+    x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
+    x_2 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1*gamma.T, immutable=True))
+    x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
+
+    lattice_pts = [x_0, x_1, x_2, x_3]
+
+    # Compute the coefficients in the relation.
+    Q_0 = q**(-s*t)
+    Q_1 = q**(s*t)
+    Q_2 = -q**(C - r*(c*t + d*u))
+    Q_3 = -q**(C + r*(c*t + d*u))
+
+    coeffs = [Q_0, Q_1, Q_2, Q_3]
+    #The relation is the following:
+    rel = list(zip(coeffs, lattice_pts))
+
+    return rel
+
 def print_generators(shell_level, spanning_set, order_func):
     '''
     Prints a visualisation of the spanning lattice points to the command line.
@@ -261,6 +326,7 @@ def print_generators(shell_level, spanning_set, order_func):
     Takes the shell level, a tuple giving the indices of the spanning set, and
     the order_func to map lattice points to indices for comparison.
     '''
+
     max_width = os.get_terminal_size().columns #Check terminal is wide enough
     if 2*(2*shell_level + 1) > max_width:
         print("Cannot display spanning set graphically.")
@@ -297,8 +363,9 @@ def print_generators(shell_level, spanning_set, order_func):
 def order_lexi():
     '''
     Returns an ordering on 1x2 vector representations of basis elements of
-    C[X, Y]/(X^2, Y^2). The element R = X^aY^b is the vector r = [a, b], so that
-    RS is given by rs and gamma.R is r*gamma.T, and the basis is {1, X, Y, XY}.
+    C[X, Y]/(X^2 - 1, Y^2 - 1). The element R = X^aY^b is the vector r = [a, b],
+    so that RS is given by rs and gamma.R is r*gamma.T, and the basis is
+    {1, X, Y, XY}.
 
     Returns a dictionary giving lexicographical ordering on these vectors.
 
@@ -308,6 +375,7 @@ def order_lexi():
     and the ordering persists (from Python 3.7), i.e. oder-dict.keys() is an
     iterable with the vectors given in the ordering.
     '''
+
     Z_2 = Integers(2) # Work mod 2
     order_dict = {}
     place = 0 # Record the place in the ordering
@@ -332,10 +400,11 @@ def get_dim_single_skein(gamma):
     2 with Z/2-entries, i.e. X^aY^b is [a, b], and these are ordered
     lexicographically.
 
-    The implementation is similar to get_relations: for all pairs of basis
-    elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators, then
-    the corank of these relations is the required dimension.
+    The implementation is similar to get_relations_empty: for all pairs of basis
+    elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators,
+    then the corank of these relations is the required dimension.
     '''
+
     Z_2 = Integers(2) # Integers mod 2
     order_dict = order_lexi() # A dict and list to order the basis
 
@@ -503,6 +572,7 @@ def get_spanning_set(A, ordering, shell_level):
     a vector not in the span of B, its position in the ordering is added to the
     list of spanning vectors.
     '''
+
     N = (2*shell_level + 1)*(shell_level + 1) - shell_level
     spanning_set = []
 
@@ -522,17 +592,20 @@ def get_spanning_set(A, ordering, shell_level):
             # of indices of spanning vectors (used to print generators).
             if A.rank() > rk_A:
                 spanning_set.append(ordering[lattice_pt])
+            # Otherwise, discard the augmenting vector.
+            else:
+                A = A[:-1]
 
     return spanning_set
 
-def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_out, dir_in, output_path, cache_path):
+def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path):
     '''
     A helper function for generate_raw_data, handles the subroutine of
     collating the results of dimension computations for M (up to shell_levels
     cutoff) and writes to the file at output_path, in append mode.
-    Also stores the relation matrix, reduced version, and dim estimates as a 
-    tuple sage object, and maintains a persistent cache. If try_defrost=True, 
-    will attempt to load the results of previous computations and use these 
+    Also stores the relation matrix, reduced version, and dim estimates as a
+    tuple sage object, and maintains a persistent cache. If try_defrost=True,
+    will attempt to load the results of previous computations and use these
     to only recurse to a specified base in compute-reduced_matrix.
     '''
 
@@ -545,9 +618,6 @@ def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_out, dir_i
     seq_path_in = os.path.join(dir_in, seq_string+".sobj")
     seq_path_out = os.path.join(dir_out, seq_string+".sobj")
 
-    # Declare an indeterminate q.
-    q = var('q')
-
     # Get the dimension of the single skein.
     dim_single = get_dim_single_skein(gamma)
 
@@ -556,7 +626,6 @@ def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_out, dir_i
     if try_defrost and os.path.exists(seq_path_in):
         data = sage.misc.persist.load(seq_path_in)
         empty_data = compute_reduced_matrix(gamma, shell_levels, False, base_level=data[0], base_data=data[1:])
-
     else:
         empty_data = compute_reduced_matrix(gamma, shell_levels, False)
 
@@ -586,6 +655,7 @@ def compute_write_low_trace(shell_levels, try_defrost, dir_in, dir_out, output_p
     Perform the computations for matrices of trace with abs val < 2, with a
     specified max shell level, and write to the file at path.
     '''
+
     #Trace 0 matrix
     S = matrix(ZZ, 2, [0, -1, 1, 0])
 
@@ -607,10 +677,12 @@ def compute_write_from_seq(sequence, shell_levels, try_defrost, dir_in, dir_out,
         R^{a_1}L^{a_2}...(R or L)^{a_k}
     given a sequence (a_k). Computations performed up to a max shell level, and
     written to path.
+
     Here R = [[1, 1], [0, 1]], L = [[1, 0], [1, 1]] so that R^n is
     [[1, n], [0, 1]] and this is how we implement the exponentiation (similar
     for L).
     '''
+
     #Generators for |trace| >= 2 matrices
     R = matrix(ZZ, 2, [1, 1, 0, 1])
     L = matrix(ZZ, 2, [1, 0, 1, 1])
@@ -633,40 +705,12 @@ def seq_has_been_checked(seq, cache):
     Checks is the given sequence, or any rotation thereof, is in the cache of
     already-checked sequences.
     '''
+
     for i in range(len(seq)):
         seq = seq[1:] + seq[:1] # Rotate the sequence once.
         if seq in cache: # Check cache membership.
             return True
     return False
-
-def fixup(dim_table, dir_in, dir_out):
-    '''
-    A helper function.
-    '''
-    
-    with open(dim_table, newline="") as cache_file:
-                cache_reader = csv.reader(cache_file)
-                next(cache_reader)
-                for data_entry in cache_reader:
-                    print(data_entry)
-
-                    M = data_entry[1:5]
-                    seq_string = "{0}_{1}_{2}_{3}".format(*M)
-                    seq_path = os.path.join(dir_in, seq_string+".sobj")
-
-                    data = sage.misc.persist.load(seq_path)
-                    shell_levels = data[0]
-                    dim_ests = data_entry[7:shell_levels+7]
-                    new_data = (data[0], data[1], data[2], dim_ests)
-                    #print(data_entry)
-                    #print(dim_ests)
-
-                    if not os.path.exists(dir_out):
-                        os.mkdir(dir_out)
-
-
-                    new_path = os.path.join(dir_out, seq_string+".sobj")
-                    sage.misc.persist.save(new_data, new_path)
 
 def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data", dir_out="data", output_path="skeindims-rawdata.csv", cache_path="seq-cache.csv"):
     '''
@@ -677,8 +721,8 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
     loaded from a csv and the new dimension data is appended to an existing
     output file.
 
-    All data is stored in the directory specified by dir_out. 
-    
+    All data is stored in the directory specified by dir_out.
+
     In try_defrost mode, this dir_in will be searched for .sobj files containing
     the results of previous computations, in which case the computation will recurse
     to this base step.
@@ -706,6 +750,7 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
 
     # Dimensions for matrices of |trace| >  2
 
+
     cache = []  # Previously checked sequences.
     if append:
         if os.path.exists(cache_path):
@@ -723,6 +768,7 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
                 compute_write_from_seq(sequence=sequence, shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
                 cache.append(sequence)
 
+
     return None
 
 def write_dim_table(rawpath, outpath, shell_levels):
@@ -730,12 +776,13 @@ def write_dim_table(rawpath, outpath, shell_levels):
     Parses data produced by generate_raw_data, stored in the file rawpath, and
     gives this as a formatted table written to the file at outpath.
     '''
+
     df  = pd.read_csv(rawpath, dtype=str)
 
     #Calculate values that may be required for padding and alignment.
     max_tr_len = df["trace"].map(len).max()
     max_entry_len = df[["a", "b", "c", "d"]].applymap(len).values.max()
-    max_empty_dim_len = df["shell_{n}".format(n=shell_levels)].map(len).max()
+    max_empty_dim_len = df["shell_{n}".format(n=shell_levels-1)].map(len).max()
     max_total_dim_len = df["total_dim"].map(len).max()
 
     mat_line_length = 5 + max_entry_len*2
@@ -749,9 +796,9 @@ def write_dim_table(rawpath, outpath, shell_levels):
             print("{tr: >{max_tr_len}s}\t\t".format(tr=row["trace"], max_tr_len=max(max_tr_len, len("TRACE"))), end="", file=f)
             print("[[{a: >{max_entry_len}s} {b: >{max_entry_len}s}] \t\t".format(a=row["a"], b=row["b"], max_entry_len=max_entry_len), end="", file=f)
             print("{sing: >6s}\t".format(sing=row["single_dim"]), end="", file=f)
-            print("{empty: >{max_empty_dim_len}s}\t".format(empty=row["shell_{n}".format(n=shell_levels)], max_empty_dim_len = max(max_empty_dim_len, len("EMPTY"))), end="", file=f)
+            print("{empty: >{max_empty_dim_len}s}\t".format(empty=row["shell_{n}".format(n=shell_levels-1)], max_empty_dim_len = max(max_empty_dim_len, len("EMPTY"))), end="", file=f)
             print("{tot: >{max_total_dim_len}s}\t\t\t".format(tot=row["total_dim"], max_total_dim_len=max(max_total_dim_len, len("TOTAL"))), end="", file=f)
-            print("{ests}".format(ests=row[["shell_{n}".format(n=i) for i in range(shell_levels + 1)]].values.tolist()), file=f)
+            print("{ests}".format(ests=row[["shell_{n}".format(n=i) for i in range(shell_levels)]].values.tolist()), file=f)
             print(" "*max(max_tr_len,  5) + "\t\t" + " ", end="", file=f)
             print("[{c: >{max_entry_len}s} {d: >{max_entry_len}s}]]".format(c=row["c"], d=row["d"], max_entry_len=max_entry_len), file=f)
             print("", file=f)
