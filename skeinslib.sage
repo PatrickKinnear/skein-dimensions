@@ -165,7 +165,7 @@ def get_relations_empty(gamma, shell_level, order_func):
             u = p_1[1]
 
             #A constant appearing in our coefficients, we compute it in advance
-            C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
+            C = (-a*c*t**2 - 2*b*c*t*u -b*d*u**2)/2
 
             # The linear relation is between the four lattice points below:
             x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
@@ -242,7 +242,7 @@ def get_new_relations_empty(gamma, shell_level, order_func):
             u = p_1[1]
 
             #A constant appearing in our coefficients, we compute it in advance
-            C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
+            C = (-a*c*t**2 - 2*b*c*t*u -b*d*u**2)/2
 
             # The linear relation is between the four lattice points below:
             x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
@@ -295,7 +295,7 @@ def get_relation(gamma, p_0, p_1):
     u = p_1[1]
 
     #A constant appearing in our coefficients, we compute it in advance
-    C = (-t*(t-1)*a*c - u*(u-1)*b*d)/2 - t*u*c*b
+    C = (-a*c*t**2 - 2*b*c*t*u -b*d*u**2)/2
 
     # The linear relation is between the four lattice points below:
     x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
