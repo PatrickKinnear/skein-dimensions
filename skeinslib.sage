@@ -51,8 +51,9 @@ import pandas as pd
 
 from sage.all import *
 
-var('q')
-K = FractionField(PolynomialRing(QQ, 'q', sparse=True))
+var('sqq')
+K = FractionField(PolynomialRing(QQ, 'sqq', sparse=True))
+q = sqq**2
 
 def order_by_shell_level(shell_level):
     '''
@@ -154,8 +155,6 @@ def get_relations_empty(gamma, shell_level, order_func):
     c = gamma[1, 0]
     d = gamma[1, 1]
 
-    q = var('q') # Must be defined here to alllow compiled sage.
-
     for p_0 in ordering.keys():
         for p_1 in ordering.keys():
             #Unpack the points
@@ -182,10 +181,10 @@ def get_relations_empty(gamma, shell_level, order_func):
                 x_3_vect = vector(K, [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
                 # Compute the coefficients in the relation.
-                Q_0 = q**(-s*t)
-                Q_1 = q**(s*t)
-                Q_2 = -q**(C - r*(c*t + d*u))
-                Q_3 = -q**(C + r*(c*t + d*u))
+                Q_0 = (q**(-s*t)).canonicalize_radical()
+                Q_1 = (q**(s*t)).canonicalize_radical()
+                Q_2 = (-q**(C - r*(c*t + d*u))).canonicalize_radical()
+                Q_3 = (-q**(C + r*(c*t + d*u))).canonicalize_radical()
 
                 #The relation is the following:
                 rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
@@ -231,8 +230,6 @@ def get_new_relations_empty(gamma, shell_level, order_func):
     c = gamma[1, 0]
     d = gamma[1, 1]
 
-    q = var('q') # Must be defined here to alllow compiled sage.
-
     for p_0 in ordering.keys():
         for p_1 in ordering.keys():
             #Unpack the points
@@ -261,10 +258,10 @@ def get_new_relations_empty(gamma, shell_level, order_func):
                     x_3_vect = vector(K, [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
                     # Compute the coefficients in the relation.
-                    Q_0 = q**(-s*t)
-                    Q_1 = q**(s*t)
-                    Q_2 = -q**(C - r*(c*t + d*u))
-                    Q_3 = -q**(C + r*(c*t + d*u))
+                    Q_0 = (q**(-s*t)).canonicalize_radical()
+                    Q_1 = (q**(s*t)).canonicalize_radical()
+                    Q_2 = (-q**(C - r*(c*t + d*u))).canonicalize_radical()
+                    Q_3 = (-q**(C + r*(c*t + d*u))).canonicalize_radical()
 
                     #The relation is the following:
                     rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
@@ -287,8 +284,6 @@ def get_relation(gamma, p_0, p_1):
     c = gamma[1, 0]
     d = gamma[1, 1]
 
-    q = var('q') # Must be defined here to alllow compiled sage.
-
     r = p_0[0]
     s = p_0[1]
     t = p_1[0]
@@ -306,10 +301,10 @@ def get_relation(gamma, p_0, p_1):
     lattice_pts = [x_0, x_1, x_2, x_3]
 
     # Compute the coefficients in the relation.
-    Q_0 = q**(-s*t)
-    Q_1 = q**(s*t)
-    Q_2 = -q**(C - r*(c*t + d*u))
-    Q_3 = -q**(C + r*(c*t + d*u))
+    Q_0 = (q**(-s*t)).canonicalize_radical()
+    Q_1 = (q**(s*t)).canonicalize_radical()
+    Q_2 = (-q**(C - r*(c*t + d*u))).canonicalize_radical()
+    Q_3 = (-q**(C + r*(c*t + d*u))).canonicalize_radical()
 
     coeffs = [Q_0, Q_1, Q_2, Q_3]
     #The relation is the following:
