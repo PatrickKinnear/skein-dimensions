@@ -87,21 +87,37 @@ def order_by_shell_level(shell_level):
         order_dict = order_by_shell_level(shell_level - 1)
         place = len(order_dict.keys())
 
-        # We will walk through points (a, b) in the L shape of points in shell
-        # level n but not level n-1.
-        b = shell_level
-        a = -1*shell_level
+        # We will
+        b = 0
+        a = shell_level
 
         # We turn the corner for a = b = shell_level.
-        while a < shell_level:
-             order_dict.update({vector(ZZ, [a, b], immutable=True) : place})
-             place += 1
-             a += 1
+        while b < shell_level:
+            order_dict.update({vector(ZZ, [a, b], immutable=True) : place})
+            #print_generators_mod(5, list(range(place)), order_dict)
+            place += 1
+            order_dict.update({vector(ZZ, [-1*a, -1*b], immutable=True) : place})
+            place += 1
+            #print_generators_mod(5, list(range(place)), order_dict)
+            b += 1
 
         #Here the shell edge is the line y = -x + 1; decrement to this point
-        while b > -1*shell_level:
+        while a > -1*shell_level:
             order_dict.update({vector(ZZ, [a, b], immutable=True) : place})
             place += 1
+            #print_generators_mod(5, list(range(place)), order_dict)
+            order_dict.update({vector(ZZ, [-1*a, -1*b], immutable=True) : place})
+            place += 1
+            #print_generators_mod(5, list(range(place)), order_dict)
+            a -= 1
+
+        while b > 0:
+            order_dict.update({vector(ZZ, [a, b], immutable=True) : place})
+            #print_generators_mod(5, list(range(place)), order_dict)
+            place += 1
+            order_dict.update({vector(ZZ, [-1*a, -1*b], immutable=True) : place})
+            place += 1
+            #print_generators_mod(5, list(range(place)), order_dict)
             b -= 1
 
     return order_dict
@@ -145,8 +161,8 @@ def get_relations_empty(gamma, shell_level, order_func):
     relations.
     '''
 
-    relations = {}
-    N = (2*shell_level + 1)*(shell_level + 1) - shell_level # Total lattice pts.
+    relations = []
+    N = (2*shell_level + 1)**2
     ordering = order_func(shell_level) # Dict and list of order
 
     #Unpack the matrix gamma.
@@ -157,42 +173,52 @@ def get_relations_empty(gamma, shell_level, order_func):
 
     for p_0 in ordering.keys():
         for p_1 in ordering.keys():
-            #Unpack the points
-            r = p_0[0]
-            s = p_0[1]
-            t = p_1[0]
-            u = p_1[1]
+                    #Unpack the points
+                    #r = p_0[0]
+                    #s = p_0[1]
+                    #t = p_1[0]
+                    #u = p_1[1]
 
-            #A constant appearing in our coefficients, we compute it in advance
-            C = (-a*c*t**2 - 2*b*c*t*u -b*d*u**2)/2
+                    #A constant appearing in our coefficients, we compute it in advance
+                    #C = (-a*c*t**2 - 2*b*c*t*u -b*d*u**2)/2
 
-            # The linear relation is between the four lattice points below:
-            x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
-            x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
-            x_2 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1*gamma.T, immutable=True))
-            x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
+                    # The linear relation is between the four lattice points below:
+                    x_0 = vector(ZZ, p_0 + p_1, immutable=True)
+                    #x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
+                    x_2 = vector(ZZ, p_0 + p_1*gamma.T, immutable=True)
+                    #x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
 
-            # Check the relations are not out of range.
-            if x_0 in ordering.keys() and x_1 in ordering.keys() and x_2 in ordering.keys() and x_3 in ordering.keys():
-                #Create vectors corresponding to the four lattice points.
-                x_0_vect = vector(K, [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
-                x_1_vect = vector(K, [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
-                x_2_vect = vector(K, [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
-                x_3_vect = vector(K, [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
+                    # Check the relations are not out of range.
 
-                # Compute the coefficients in the relation.
-                Q_0 = (q**(-s*t)).canonicalize_radical()
-                Q_1 = (q**(s*t)).canonicalize_radical()
-                Q_2 = (-q**(C - r*(c*t + d*u))).canonicalize_radical()
-                Q_3 = (-q**(C + r*(c*t + d*u))).canonicalize_radical()
+                    if x_0 in ordering and x_2 in ordering:
+                        x_0_vect = vector(K, [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
+                        #x_1_vect = vector(K, [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                        x_2_vect = vector(K, [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
+                        #x_3_vect = vector(K, [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
-                #The relation is the following:
-                rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
+                        # Compute the coefficients in the relation.
+                        Q_0 = (q**(det(matrix(K, 2, [p_0, p_1]))/2)).canonicalize_radical()
+                        #Q_1 = (q**(s*t)).canonicalize_radical()
+                        Q_2 = (-q**(det(matrix(K, 2, [p_1*gamma.T, p_0]))/2)).canonicalize_radical()
+                        #Q_3 = (-q**(C + r*(c*t + d*u))).canonicalize_radical()
+                        #The relation is the following:
+                        rel = Q_0*x_0_vect + Q_2*x_2_vect
+                        #print(rel)
 
-                # Check the relation is not trivial, then append.
-                if not rel.is_zero():
-                    relations[(p_0, p_1)] = rel
-
+                        # Check the relation is not trivial, then append.
+                        if not rel.is_zero():
+                            relations.append(rel)
+                            lattice_pts = [x_0, x_2]
+                            coeffs = [Q_0, Q_2]
+                            rel = list(zip(coeffs, lattice_pts))
+                            if (p_0, p_1) == (vector(ZZ, [0, 1], immutable=True), vector(ZZ, [1, -1], immutable=True)):
+                                print(rel)
+                            if (p_0, p_1) == (vector(ZZ, [0, 1], immutable=True), vector(ZZ, [2, -1], immutable=True)):
+                                print(rel)
+                            if (p_0, p_1) == (vector(ZZ, [0, 1], immutable=True), vector(ZZ, [3, -1], immutable=True)):
+                                print(rel)
+                            if (p_0, p_1) == (vector(ZZ, [0, -3], immutable=True), vector(ZZ, [0, 3], immutable=True)):
+                                print(rel)
     return relations
 
 def get_new_relations_empty(gamma, shell_level, order_func):
@@ -220,56 +246,65 @@ def get_new_relations_empty(gamma, shell_level, order_func):
     '''
 
     relations = []
-    N = (2*shell_level + 1)*(shell_level + 1) - shell_level # Total lattice pts.
+    N = (2*shell_level + 1)**2
     ordering = order_func(shell_level) # Dict and list of order
-    M = (2*shell_level - 1)*(shell_level) - shell_level + 1 # First elements from the previous shell level
+    M = (2*shell_level - 1)**2
 
     #Unpack the matrix gamma.
-    a = gamma[0, 0]
-    b = gamma[0, 1]
-    c = gamma[1, 0]
-    d = gamma[1, 1]
+    #a = gamma[0, 0]
+    #b = gamma[0, 1]
+    #c = gamma[1, 0]
+    #d = gamma[1, 1]
 
     for p_0 in ordering.keys():
         for p_1 in ordering.keys():
             #Unpack the points
-            r = p_0[0]
-            s = p_0[1]
-            t = p_1[0]
-            u = p_1[1]
+            #r = p_0[0]
+            #s = p_0[1]
+            #t = p_1[0]
+            #u = p_1[1]
 
             #A constant appearing in our coefficients, we compute it in advance
-            C = (-a*c*t**2 - 2*b*c*t*u -b*d*u**2)/2
+            #C = (-a*c*t**2 - 2*b*c*t*u -b*d*u**2)/2
 
             # The linear relation is between the four lattice points below:
-            x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
-            x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
-            x_2 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1*gamma.T, immutable=True))
-            x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
+            x_0 = vector(ZZ, p_0 + p_1, immutable=True)
+            #x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
+            x_2 = vector(ZZ, p_0 + p_1*gamma.T, immutable=True)
+            #x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
 
             # Check the relations are not out of range.
 
-            if x_0 in ordering and x_1 in ordering and x_2 in ordering and x_3 in ordering:
-                if not (x_0  in list(ordering.keys())[:M] and x_1 in list(ordering.keys())[:M] and x_2 in list(ordering.keys())[:M] and x_3 in list(ordering.keys())[:M]):
-
+            if x_0 in ordering and x_2 in ordering:
+                #print(x_0, x_2)
+                if not (x_0  in list(ordering.keys())[:M] and x_2 in list(ordering.keys())[:M]):
                     x_0_vect = vector(K, [1 if i == ordering[x_0] else 0 for i in range(N)], sparse=True)
-                    x_1_vect = vector(K, [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
+                    #x_1_vect = vector(K, [1 if i == ordering[x_1] else 0 for i in range(N)], sparse=True)
                     x_2_vect = vector(K, [1 if i == ordering[x_2] else 0 for i in range(N)], sparse=True)
-                    x_3_vect = vector(K, [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
+                    #x_3_vect = vector(K, [1 if i == ordering[x_3] else 0 for i in range(N)], sparse=True)
 
                     # Compute the coefficients in the relation.
-                    Q_0 = (q**(-s*t)).canonicalize_radical()
-                    Q_1 = (q**(s*t)).canonicalize_radical()
-                    Q_2 = (-q**(C - r*(c*t + d*u))).canonicalize_radical()
-                    Q_3 = (-q**(C + r*(c*t + d*u))).canonicalize_radical()
-
+                    Q_0 = (q**(det(matrix(K, 2, [p_0, p_1]))/2)).canonicalize_radical()
+                    #Q_1 = (q**(s*t)).canonicalize_radical()
+                    Q_2 = (-q**(det(matrix(K, 2, [p_1*gamma.T, p_0]))/2)).canonicalize_radical()
+                    #Q_3 = (-q**(C + r*(c*t + d*u))).canonicalize_radical()
                     #The relation is the following:
-                    rel = Q_0*x_0_vect + Q_1*x_1_vect + Q_2*x_2_vect + Q_3*x_3_vect
+                    rel = Q_0*x_0_vect + Q_2*x_2_vect
 
                     # Check the relation is not trivial, then append.
                     if not rel.is_zero():
                         relations.append(rel)
-
+                        lattice_pts = [x_0, x_2]
+                        coeffs = [Q_0, Q_2]
+                        rel = list(zip(coeffs, lattice_pts))
+                        if (p_0, p_1) == (vector(ZZ, [0, 1], immutable=True), vector(ZZ, [1, -1], immutable=True)):
+                            print(rel)
+                        if (p_0, p_1) == (vector(ZZ, [0, 1], immutable=True), vector(ZZ, [2, -1], immutable=True)):
+                            print(rel)
+                        if (p_0, p_1) == (vector(ZZ, [0, 1], immutable=True), vector(ZZ, [3, -1], immutable=True)):
+                            print(rel)
+                        if (p_0, p_1) == (vector(ZZ, [0, -3], immutable=True), vector(ZZ, [0, 3], immutable=True)):
+                            print(rel)
     return relations
 
 def get_relation(gamma, p_0, p_1):
@@ -291,6 +326,37 @@ def get_relation(gamma, p_0, p_1):
 
     #A constant appearing in our coefficients, we compute it in advance
     C = (-a*c*t**2 - 2*b*c*t*u -b*d*u**2)/2
+
+    # The linear relation is between the four lattice points below:
+    x_0 = vector(ZZ, p_0 + p_1, immutable=True)
+    #x_1 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1, immutable=True))
+    x_2 = vector(ZZ, p_0 + p_1*gamma.T, immutable=True)
+    #x_3 = force_into_fundamental_domain(vector(ZZ, p_0 - p_1*gamma.T, immutable=True))
+
+    lattice_pts = [x_0, x_2]
+
+    # Compute the coefficients in the relation.
+    Q_0 = (q**(det(matrix(K, 2, [p_0, p_1]))/2)).canonicalize_radical()
+    #Q_1 = (q**(s*t)).canonicalize_radical()
+    Q_2 = (-q**(det(matrix(K, 2, [p_1*gamma.T, p_0]))/2)).canonicalize_radical()
+    #Q_3 = (-q**(C + r*(c*t + d*u))).canonicalize_radical()
+
+    coeffs = [Q_0, Q_2]
+    #The relation is the following:
+    rel = list(zip(coeffs, lattice_pts))
+
+    return rel
+
+def get_relation_alt(gamma, p_0, p_1):
+    '''
+    Given p_0, p_1 (immutable vectors), returns the gamma-twisted commutator
+    p_0, p_1 as a zipped list of coefficients and lattice vectors.
+    '''
+
+    r = p_0[0]
+    s = p_0[1]
+    t = p_1[0]
+    u = p_1[1]
 
     # The linear relation is between the four lattice points below:
     x_0 = force_into_fundamental_domain(vector(ZZ, p_0 + p_1, immutable=True))
@@ -395,38 +461,19 @@ def get_dim_single_skein(gamma):
     2 with Z/2-entries, i.e. X^aY^b is [a, b], and these are ordered
     lexicographically.
 
-    The implementation is similar to get_relations_empty: for all pairs of basis
-    elements of C[X, Y]/(X^2 - 1, Y^2 - 1) we get the gamma-twisted commutators,
-    then the corank of these relations is the required dimension.
+    The implementation is FILL IN
     '''
+    a = gamma[0, 0]
+    b = gamma[0, 1]
+    c = gamma[1, 0]
+    d = gamma[1, 1]
 
-    Z_2 = Integers(2) # Integers mod 2
-    order_dict = order_lexi() # A dict and list to order the basis
-
-    rels = [] # Ready to record the twisted commutator relations.
-
-    # Walk thru pairs of basis elements (R, S) viewed as 1x2 Z/2 vectors (r, s)
-    for r in order_dict.keys():
-        for s in order_dict.keys():
-            first_term = vector(Z_2, r + s, immutable=True) # First term in the commutator is RS, i.e. r + s
-            second_term = vector(Z_2, s*gamma.T + r, immutable=True) # Second term is twisted by Gamma
-
-            # Use the order dict to view each term of the relation as a vector
-            # in a 4d vecctor space.
-            first_term_vector = vector(QQ, [1 if i == order_dict[first_term] else 0 for i in range(4)])
-            second_term_vector = vector(QQ, [1 if i == order_dict[second_term] else 0 for i in range(4)])
-
-            #Get the relation, and append it if non-trivial.
-            rel = first_term_vector - second_term_vector
-            if not rel.is_zero():
-                rels.append(rel)
-
-    # Calclulate the rank of the relation matrix: the dimention of the single
-    # skein part is the co-rank.
-    R = matrix(QQ, rels)
-    dim = 4 - R.rank()
-
-    return dim
+    if (a % 2 == 1) and (d % 2 == 1) and (b % 2 == 0) and (c % 2 == 0):
+        return 4
+    elif (b % 2 == 1) and (c % 2 == 1) and ((a + d) % 2 == 1):
+        return 1
+    else:
+        return 2
 
 def compute_reduced_matrix_defrost(gamma, shell_level, data_path):
     '''
@@ -479,9 +526,9 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1,
     if shell_level == base_level:
         if base_level == 1: # Recursing all the way to level 1
             # For each shell level, compute #{lattice points}.
-            N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+            N = (2*shell_level + 1)**2
             # And the number of points in previous level.
-            M = (2*shell_level - 1)*(shell_level) - shell_level + 1
+            M = (2*shell_level - 1)**2
             if interactive_flag:
                 print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
 
@@ -512,9 +559,9 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1,
 
     else:
         # For each shell level, compute #{lattice points}.
-        N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+        N = (2*shell_level + 1)**2
         # And the number of points in previous level.
-        M = (2*shell_level - 1)*(shell_level) - shell_level + 1
+        M = (2*shell_level - 1)**2
         if interactive_flag:
             print("Calculating relations for level %d (%d lattice points) ..." % (shell_level, N))
 
@@ -534,9 +581,18 @@ def compute_reduced_matrix(gamma, shell_level, interactive_flag, base_level = 1,
             # Use the new relations and old, reduced matrix to build the relations
             # matrix for this shell level, and reduce.
             Zeros_right = zero_matrix(K, A_old.nrows(), N - M, sparse=True)
+            #print(Zeros_right.nrows())
+            #print(Zeros_right.ncols())
+            #print(A_old.nrows())
+            #print(A_old.ncols())
             A_upper = block_matrix([[A_old, Zeros_right]])
+            #print("here")
             A_lower = matrix(K, relations, sparse=True, immutable=True)
-            A = block_matrix([[A_upper], [A_lower]])
+            if A_lower.ncols() == 0:
+                print("no new relations!")
+                A = A_upper
+            else:
+                A = block_matrix([[A_upper], [A_lower]])
 
         A_reduced = A.rref()
 
@@ -568,7 +624,7 @@ def get_spanning_set(A, ordering, shell_level):
     list of spanning vectors.
     '''
 
-    N = (2*shell_level + 1)*(shell_level + 1) - shell_level
+    N = (2*shell_level + 1)**2
     spanning_set = []
 
     #Handle the case of the empty relation matrix
@@ -593,7 +649,32 @@ def get_spanning_set(A, ordering, shell_level):
 
     return spanning_set
 
-def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path):
+def weyl_action(x):
+    if x % 2 == 0:
+        return (x + 2)/2
+    else:
+        return (x + 1)/2
+
+def get_dim_empty_skein(gamma):
+    I = matrix(ZZ, 2, [1, 0, 0, 1])
+
+    D_minus, U_minus, V_minus = (I - gamma).smith_form()
+    a_minus_1 = D_minus[0, 0]
+    a_minus_2 = D_minus[1, 1]
+
+    D_plus, U_plus, V_plus = (I + gamma).smith_form()
+    a_plus_1 = D_plus[0, 0]
+    a_plus_2 = D_plus[1, 1]
+
+    n_minus_1 = weyl_action(a_minus_1)
+    n_minus_2 = weyl_action(a_minus_2)
+
+    n_plus_1 = weyl_action(a_plus_1)
+    n_plus_2 = weyl_action(a_plus_2)
+
+    return [n_minus_1*n_minus_2, n_plus_1*n_plus_2]
+
+def compute_and_write(sequence, gamma, output_path, cache_path):
     '''
     A helper function for generate_raw_data, handles the subroutine of
     collating the results of dimension computations for M (up to shell_levels
@@ -605,38 +686,20 @@ def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_in, dir_ou
     to only recurse to a specified base in compute-reduced_matrix.
     '''
 
-    # Store the computed sage objects in dir_out, indexed by the matrix entries.
-    if not os.path.exists(dir_out):
-        os.mkdir(dir_out)
-
-    seq_string = "{0}_{1}_{2}_{3}".format(gamma[0, 0], gamma[0, 1], gamma[1, 0], gamma[1, 1])
-    seq_path_in = os.path.join(dir_in, seq_string+".sobj")
-    seq_path_out = os.path.join(dir_out, seq_string+".sobj")
-
     # Get the dimension of the single skein.
     dim_single = get_dim_single_skein(gamma)
 
+    dim_empty_minus, dim_empty_plus = get_dim_empty_skein(gamma)
+
     # If we are trying to defrost computations, and the data exists, use this to continue our computations
     # of the data for the empty skein part. Otherwise recurse to level 0.
-    if try_defrost and os.path.exists(seq_path_in):
-        data = sage.misc.persist.load(seq_path_in)
-        empty_data = compute_reduced_matrix(gamma, shell_levels, False, base_level=data[0], base_data=data[1:])
-    else:
-        empty_data = compute_reduced_matrix(gamma, shell_levels, False)
-
-    # Extract some of the numbers we are interested in.
-    dim_estimates = empty_data[2]
-    dim_total = dim_single + dim_estimates[-1]
+    dim_total = dim_single + dim_empty_minus + dim_empty_plus
 
     # Write the relevant data to the output files.
     with open(output_path, "a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([gamma.trace(), gamma[0, 0], gamma[0, 1], gamma[1, 0], gamma[1, 1], dim_single, dim_total] + dim_estimates + list(sequence))
+        writer.writerow([gamma.trace(), gamma[0, 0], gamma[0, 1], gamma[1, 0], gamma[1, 1], dim_single, dim_empty_minus, dim_empty_plus, dim_total] + list(sequence))
     f.close()
-
-    A = empty_data[0]
-    A_reduced = empty_data[1]
-    sage.misc.persist.save([shell_levels, A, A_reduced, dim_estimates], seq_path_out)
 
     # Write the computed sequence to the persistent cache file.
     with open(cache_path, "a", newline="") as f:
@@ -645,7 +708,7 @@ def compute_and_write(sequence, gamma, shell_levels, try_defrost, dir_in, dir_ou
 
     return None
 
-def compute_write_low_trace(shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path):
+def compute_write_low_trace(output_path, cache_path):
     '''
     Perform the computations for matrices of trace with abs val < 2, with a
     specified max shell level, and write to the file at path.
@@ -662,11 +725,11 @@ def compute_write_low_trace(shell_levels, try_defrost, dir_in, dir_out, output_p
 
     # Compute dimensions for the 3 matrices of low trace.
     for M in low_trace:
-        compute_and_write([], M, shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
+        compute_and_write([], M, output_path=output_path, cache_path=cache_path)
 
     return None
 
-def compute_write_from_seq(sequence, shell_levels, try_defrost, dir_in, dir_out, output_path, cache_path):
+def compute_write_from_seq(sequence, output_path, cache_path):
     '''
     Performs the dimension computations for an SL_2(Z) matrix of form
         R^{a_1}L^{a_2}...(R or L)^{a_k}
@@ -692,7 +755,7 @@ def compute_write_from_seq(sequence, shell_levels, try_defrost, dir_in, dir_out,
             #Multiply by L^a
             M = M*matrix(ZZ, 2, [1, 0, sequence[i], 1])
 
-    compute_and_write(sequence=sequence, gamma=M, shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
+    compute_and_write(sequence=sequence, gamma=M, output_path=output_path, cache_path=cache_path)
     return None
 
 def seq_has_been_checked(seq, cache):
@@ -707,7 +770,7 @@ def seq_has_been_checked(seq, cache):
             return True
     return False
 
-def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data", dir_out="data", output_path="skeindims-rawdata.csv", cache_path="seq-cache.csv"):
+def generate_raw_data(append=False, output_path="skeindims-rawdata.csv", cache_path="seq-cache.csv"):
     '''
     Generate several SL_2(Z) matrices, compute their skein dimension estimates,
     and write this data to a csv file.
@@ -725,23 +788,23 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
     Shell_levels is the total number of shell levels, including level 0 (!)
     '''
 
-    half_max_seq_len = 2
+    half_max_seq_len = 3
 
     if not append:
         # Open a file for the raw data, and write a header.
         with open(output_path, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "total_dim"] + ["shell_{n}".format(n=i) for i in range(shell_levels)] + ["seq_{n}".format(n=i) for i in range(2*half_max_seq_len)])
+            writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "dim_HH_0_-", "dim_HH_0_+", "total_dim"] + ["seq_{n}".format(n=i) for i in range(2*half_max_seq_len)])
         # Reset the cache
         if os.path.exists(cache_path):
             os.remove(cache_path)
 
     # Dimensions for low trace matrices.
-    compute_write_low_trace(shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
+    compute_write_low_trace(output_path=output_path, cache_path=cache_path)
 
     # Dimensions for the family of shears (|trace = 2|).
     for n in range(11):
-        compute_write_from_seq(sequence=[n], shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
+        compute_write_from_seq(sequence=[n], output_path=output_path, cache_path=cache_path)
 
     # Dimensions for matrices of |trace| >  2
 
@@ -760,13 +823,12 @@ def generate_raw_data(shell_levels, append=False, try_defrost=True, dir_in="data
         for sequence in sequences:
             #Exclude previously checked sequences up to cyclic permutation.
             if not seq_has_been_checked(sequence, cache):
-                compute_write_from_seq(sequence=sequence, shell_levels=shell_levels, try_defrost=try_defrost, dir_in=dir_in, dir_out=dir_out, output_path=output_path, cache_path=cache_path)
+                compute_write_from_seq(sequence=sequence, output_path=output_path, cache_path=cache_path)
                 cache.append(sequence)
-
 
     return None
 
-def write_dim_table(rawpath, outpath, shell_levels):
+def write_dim_table(rawpath, outpath):
     '''
     Parses data produced by generate_raw_data, stored in the file rawpath, and
     gives this as a formatted table written to the file at outpath.
@@ -777,23 +839,24 @@ def write_dim_table(rawpath, outpath, shell_levels):
     #Calculate values that may be required for padding and alignment.
     max_tr_len = df["trace"].map(len).max()
     max_entry_len = df[["a", "b", "c", "d"]].applymap(len).values.max()
-    max_empty_dim_len = df["shell_{n}".format(n=shell_levels-1)].map(len).max()
+    max_HH_0_min = df["dim_HH_0_-"].map(len).max()
+    max_HH_0_pls = df["dim_HH_0_+"].map(len).max()
     max_total_dim_len = df["total_dim"].map(len).max()
 
     mat_line_length = 5 + max_entry_len*2
 
     with open(outpath, "w") as f:
         #Table header
-        print("TRACE\t\tMATRIX" + " "*(mat_line_length-len("MATRIX")) + "\t\tSINGLE\tEMPTY\tTOTAL\t\t\tSHELL ESTIMATES", file=f)
+        print("TRACE\t\tMATRIX" + " "*(mat_line_length-len("MATRIX")) + "\t\tSINGLE\tHH_0_-\tHH_0_+\tTOTAL", file=f)
 
         #Iterate through the entries and print rows.
         for idx, row in df.iterrows():
             print("{tr: >{max_tr_len}s}\t\t".format(tr=row["trace"], max_tr_len=max(max_tr_len, len("TRACE"))), end="", file=f)
             print("[[{a: >{max_entry_len}s} {b: >{max_entry_len}s}] \t\t".format(a=row["a"], b=row["b"], max_entry_len=max_entry_len), end="", file=f)
             print("{sing: >6s}\t".format(sing=row["single_dim"]), end="", file=f)
-            print("{empty: >{max_empty_dim_len}s}\t".format(empty=row["shell_{n}".format(n=shell_levels-1)], max_empty_dim_len = max(max_empty_dim_len, len("EMPTY"))), end="", file=f)
-            print("{tot: >{max_total_dim_len}s}\t\t\t".format(tot=row["total_dim"], max_total_dim_len=max(max_total_dim_len, len("TOTAL"))), end="", file=f)
-            print("{ests}".format(ests=row[["shell_{n}".format(n=i) for i in range(shell_levels)]].values.tolist()), file=f)
+            print("{HH_0_min: >6s}\t".format(HH_0_min=row["dim_HH_0_-"]), end="", file=f)
+            print("{HH_0_pls: >6s}\t".format(HH_0_pls=row["dim_HH_0_+"]), end="", file=f)
+            print("{tot: >{max_total_dim_len}s}\t\t\t".format(tot=row["total_dim"], max_total_dim_len=max(max_total_dim_len, len("TOTAL"))), end="\n", file=f)
             print(" "*max(max_tr_len,  5) + "\t\t" + " ", end="", file=f)
             print("[{c: >{max_entry_len}s} {d: >{max_entry_len}s}]]".format(c=row["c"], d=row["d"], max_entry_len=max_entry_len), file=f)
             print("", file=f)
