@@ -1,6 +1,4 @@
 *.sage.py
 *.spyx
-*.csv
-*.txt
 .idea/
 .ipynb_checkpoints/
