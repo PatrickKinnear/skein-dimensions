@@ -1,4 +1,4 @@
-# Skein Module Dimension Estimates
+# Skein Module Dimensions
 
 A project to calculate the dimensions of skein modules of mapping tori of T^2, written by Patrick Kinnear.
 
