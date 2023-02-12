@@ -12,7 +12,7 @@ and
 
 which take an SL_2(Z)-matrix `gamma` which defines a mapping torus, and return the dimension of certain direct summands of its Kauffman bracket skein module (for generic q). The total dimension is the sum of the values returned by these functions.
 
-There are additional functions for helping to tabulate, store and display the calculations for conjugacy classes in SL_2(Z). These computations are stored in the `data` folder.
+There are additional functions for helping to tabulate, store and display the calculations for conjugacy classes in SL_2(Z). These computations are stored in the `data` folder. The initial data in this folder was generated on 4th November 2022 by P. Kinnear; further updates will be logged by date they are committed to this repo).
 
 *Note* that the code for writing a nicely-formatted table requires pandas. This can be installed by opening a
 Sage shell and running
