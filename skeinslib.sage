@@ -38,12 +38,12 @@ def get_dim_single_skein(gamma):
     checks this. See the accompanying paper for the derivation of the dims.
     '''
     I = matrix(ZZ, 2, [1, 0, 0, 1])
-    E_plus_2 = matrix(ZZ, 2, [1, 1, 1, 0]) # The matrix E_plus mod 2
-    E_minus_2 = matrix(ZZ, 2, [0, 1, 1, 1]) # The matrix E_minus mod 2
+    P = matrix(ZZ, 2, [1, 1, 1, 0])
+    Q = matrix(ZZ, 2, [0, 1, 1, 1])
 
     if gamma % 2 == I:
         return 4
-    elif gamma % 2 == E_plus_2 or gamma % 2 == E_minus_2:
+    elif gamma % 2 == P or gamma % 2 == Q:
         return 1
     else:
         return 2
