@@ -75,10 +75,10 @@ def get_dim_empty_skein(gamma):
     I = matrix(ZZ, 2, [1, 0, 0, 1])
 
     D_minus, U_minus, V_minus = (I - gamma).smith_form()
-    a_minus = [a for a in D_minus.diagonal() if a > 0]
+    a_minus = [a for a in D_minus.diagonal() if a != 0]
 
     D_plus, U_plus, V_plus = (I + gamma).smith_form()
-    a_plus = [a for a in D_plus.diagonal() if a > 0]
+    a_plus = [a for a in D_plus.diagonal() if a != 0]
 
     p_minus = len([a for a in a_minus if a%2 == 0])
     p_plus = len([a for a in a_plus if a%2 == 0])
