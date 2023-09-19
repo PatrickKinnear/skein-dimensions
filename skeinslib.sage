@@ -83,20 +83,6 @@ def get_dim_empty_skein(gamma):
     p_minus = len([a for a in a_minus if a%2 == 0])
     p_plus = len([a for a in a_plus if a%2 == 0])
 
-    if len(a_minus) > 0:
-        if not (1 in a_minus or 2 in a_minus):
-            with open("minus_failures.csv", "a", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow(list(gamma) + a_minus)
-            f.close()
-
-    if len(a_plus) > 0:
-        if not (1 in a_plus or 2 in a_plus):
-            with open("plus_failures.csv", "a", newline="") as f:
-                writer = csv.writer(f)
-                writer.writerow(list(gamma) + a_plus)
-            f.close()
-
     return [(prod(a_minus) + 2**p_minus)/2, (prod(a_plus) + 2**(p_plus))/2]
 
 def compute_and_write(sequence, gamma, output_path, cache_path):
