@@ -1,7 +1,7 @@
 '''
 DESCRIPTION Some  functionality for tabulating dimensions of skein modules of
 mapping tori if T^2. The formulae are given in a paper of P. Kinnear, and this
-code simply automates the computations.
+code simply automates the computations. (arXiv:2304.07332)
 
 USAGE In a sage interactive session or a sage script, load these functions using
 
@@ -31,8 +31,7 @@ from sage.all import *
 def get_dim_single_skein(gamma):
     '''
     Takes an SL_2(Z) matrix gamma, and returns the dimension of the single skein
-    part of the twisted torus, where gamma is an SL_2(Z)-matrix defining the
-    twisting.
+    part of the mapping torus.
 
     The dimension depends only on the parity of gamma, and this code simply
     checks this. See the accompanying paper for the derivation of the dims.
@@ -48,23 +47,10 @@ def get_dim_single_skein(gamma):
     else:
         return 2
 
-
-def weyl_action(x):
-    '''
-    Implements taking coinvariants for the negation action of Z/2Z on quotients
-    Z/xZ. Given x defining Z/xZ, return the number of elements of the space of
-    coinvariants.
-    '''
-    if x % 2 == 0:
-        return (x + 2)/2
-    else:
-        return (x + 1)/2
-
 def get_dim_empty_skein(gamma):
     '''
     Takes an SL_2(Z) matrix gamma, and returns the dimensions of the empty skein
-    part of the twisted torus, where gamma is an SL_2(Z)-matrix defining the
-    twisting.
+    part of the mapping torus.
 
     The dimension depends only the invariant factors of I +/- gamma, acting on
     the lattice Z^2, and this is obtained by smith normal form.
@@ -74,16 +60,20 @@ def get_dim_empty_skein(gamma):
     '''
     I = matrix(ZZ, 2, [1, 0, 0, 1])
 
-    D_minus, U_minus, V_minus = (I - gamma).smith_form()
-    a_minus = [a for a in D_minus.diagonal() if a != 0]
-
-    D_plus, U_plus, V_plus = (I + gamma).smith_form()
+    #SNF and invariant factors of I + gamma (w = +1)
+    D_plus, U_plus, V_plus = (I - gamma).smith_form()
     a_plus = [a for a in D_plus.diagonal() if a != 0]
 
-    p_minus = len([a for a in a_minus if a%2 == 0])
-    p_plus = len([a for a in a_plus if a%2 == 0])
+    #SNF and invariant factors of I + gamma (w = -1)
+    D_minus, U_minus, V_minus = (I + gamma).smith_form()
+    a_minus = [a for a in D_minus.diagonal() if a != 0]
 
-    return [(prod(a_minus) + 2**p_minus)/2, (prod(a_plus) + 2**(p_plus))/2]
+    #Count of even invariant factors
+    p_plus = len([a for a in a_plus if a%2 == 0])
+    p_minus = len([a for a in a_minus if a%2 == 0])
+
+    #The dimension of the two components returned as a list
+    return [(prod(a_plus) + 2**(p_plus))/2, (prod(a_minus) + 2**p_minus)/2]
 
 def compute_and_write(sequence, gamma, output_path, cache_path):
     '''
@@ -95,15 +85,15 @@ def compute_and_write(sequence, gamma, output_path, cache_path):
     dim_single = get_dim_single_skein(gamma)
 
     # Dimension of empty skein part.
-    dim_empty_minus, dim_empty_plus = get_dim_empty_skein(gamma)
+    dim_empty_plus, dim_empty_minus = get_dim_empty_skein(gamma)
 
     # Total
-    dim_total = dim_single + dim_empty_minus + dim_empty_plus
+    dim_total = dim_single + dim_empty_plus + dim_empty_minus
 
     # Write the relevant data to the output files.
     with open(output_path, "a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([gamma.trace(), gamma[0, 0], gamma[0, 1], gamma[1, 0], gamma[1, 1], dim_single, dim_empty_minus, dim_empty_plus, dim_total] + list(sequence))
+        writer.writerow([gamma.trace(), gamma[0, 0], gamma[0, 1], gamma[1, 0], gamma[1, 1], dim_single,  dim_empty_plus, dim_empty_minus, dim_total] + list(sequence))
     f.close()
 
     # Write the computed sequence to the persistent cache file.
@@ -185,7 +175,7 @@ def generate_raw_data(append=False, output_path="skeindims-rawdata.csv", cache_p
         # Open a file for the raw data, and write a header.
         with open(output_path, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "dim_HH_0_-", "dim_HH_0_+", "total_dim"] + ["seq_{n}".format(n=i) for i in range(2*half_max_seq_len)])
+            writer.writerow(["trace", "a", "b", "c", "d", "single_dim", "dim_HH_0_+", "dim_HH_0_-", "total_dim"] + ["seq_{n}".format(n=i) for i in range(2*half_max_seq_len)])
         # Reset the cache
         if os.path.exists(cache_path):
             os.remove(cache_path)
@@ -235,15 +225,15 @@ def write_dim_table(rawpath="skeindims-rawdata.csv", outpath="skeindims-formatte
 
     with open(outpath, "w") as f:
         #Table header
-        print("TRACE\t\tMATRIX" + " "*(mat_line_length-len("MATRIX")) + "\t\tSINGLE\tHH_0_-\tHH_0_+\tTOTAL", file=f)
+        print("TRACE\t\tMATRIX" + " "*(mat_line_length-len("MATRIX")) + "\t\tSINGLE\tHH_0_+\tHH_0_-\tTOTAL", file=f)
 
         #Iterate through the entries and print rows.
         for idx, row in df.iterrows():
             print("{tr: >{max_tr_len}s}\t\t".format(tr=row["trace"], max_tr_len=max(max_tr_len, len("TRACE"))), end="", file=f)
             print("[[{a: >{max_entry_len}s} {b: >{max_entry_len}s}] \t\t".format(a=row["a"], b=row["b"], max_entry_len=max_entry_len), end="", file=f)
             print("{sing: >6s}\t".format(sing=row["single_dim"]), end="", file=f)
-            print("{HH_0_min: >6s}\t".format(HH_0_min=row["dim_HH_0_-"]), end="", file=f)
             print("{HH_0_pls: >6s}\t".format(HH_0_pls=row["dim_HH_0_+"]), end="", file=f)
+            print("{HH_0_min: >6s}\t".format(HH_0_min=row["dim_HH_0_-"]), end="", file=f)
             print("{tot: >{max_total_dim_len}s}\t\t\t".format(tot=row["total_dim"], max_total_dim_len=max(max_total_dim_len, len("TOTAL"))), end="\n", file=f)
             print(" "*max(max_tr_len,  5) + "\t\t" + " ", end="", file=f)
             print("[{c: >{max_entry_len}s} {d: >{max_entry_len}s}]]".format(c=row["c"], d=row["d"], max_entry_len=max_entry_len), file=f)
