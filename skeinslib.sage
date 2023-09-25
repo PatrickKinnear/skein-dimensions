@@ -180,12 +180,12 @@ def generate_raw_data(append=False, output_path="skeindims-rawdata.csv", cache_p
         if os.path.exists(cache_path):
             os.remove(cache_path)
 
-            # Dimensions for low trace matrices.
-            compute_write_low_trace(output_path=output_path, cache_path=cache_path)
+        # Dimensions for low trace matrices.
+        compute_write_low_trace(output_path=output_path, cache_path=cache_path)
 
-            # Dimensions for the family of shears (|trace = 2|).
-            for n in range(nshears):
-                compute_write_from_seq(sequence=[n], output_path=output_path, cache_path=cache_path)
+        # Dimensions for the family of shears (|trace = 2|).
+        for n in range(nshears):
+            compute_write_from_seq(sequence=[n], output_path=output_path, cache_path=cache_path)
 
     # Dimensions for matrices of |trace| >  2
     cache = []  # Previously checked sequences.
