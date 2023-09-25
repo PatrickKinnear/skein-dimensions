@@ -2,7 +2,7 @@
 
 A project to calculate the dimensions of skein modules of mapping tori of T^2, written by Patrick Kinnear.
 
-The formulae are given in a paper of P. Kinnear, and this code simply automates the computations. Most code is found in the file `skeinslib.sage`. The main functions of interest are
+The formulae are given in a paper of P. Kinnear (arXiv:2304.07332), and this code simply automates the computations. Most code is found in the file `skeinslib.sage`. The main functions of interest are
 
 `get_dim_single_skein`
 
@@ -12,7 +12,7 @@ and
 
 which take an SL_2(Z)-matrix `gamma` which defines a mapping torus, and return the dimension of certain direct summands of its Kauffman bracket skein module (for generic q). The total dimension is the sum of the values returned by these functions.
 
-There are additional functions for helping to tabulate, store and display the calculations for conjugacy classes in SL_2(Z). These computations are stored in the `data` folder. The initial data in this folder, for 132636 conjugacy classes, was generated on 4th November 2022 by P. Kinnear; further updates will be logged by date they are committed to this repo.
+There are additional functions for helping to tabulate, store and display the calculations for conjugacy classes in SL_2(Z). These computations will be published as a github release. The first release, for 3273972 conjugacy classes, was generated on 25th September 2023 by P. Kinnear; further updates will be added as new releases.
 
 *Note* that the code for writing a nicely-formatted table requires pandas. This can be installed by opening a
 Sage shell and running
